@@ -1,5 +1,7 @@
 package com.example.shoppecommerce.Controller;
 
+import com.example.shoppecommerce.Entity.Cart;
+import com.example.shoppecommerce.Entity.CartItem;
 import com.example.shoppecommerce.Entity.CartItemRequest;
 import com.example.shoppecommerce.Entity.User;
 import com.example.shoppecommerce.Service.CartService;
@@ -9,6 +11,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 @RestController
 @RequestMapping("/cart")
@@ -27,4 +31,26 @@ public class CartController {
         cartService.addProductToCart(userId, cartItemRequest);
         return ResponseEntity.ok("Product added to cart");
     }
+
+    @GetMapping("/view")
+    public ResponseEntity<?> viewCart(@AuthenticationPrincipal UserDetails userDetails) {
+        User user = userService.findByUsername(userDetails.getUsername());
+        Cart cart = cartService.getCartByUserId(user.getId());
+        if (cart == null) {
+            return ResponseEntity.notFound().build();
+        }
+        return ResponseEntity.ok(cart.getItems());
+    }
+
+    @DeleteMapping("/remove/{itemId}")
+    public ResponseEntity<?> removeItemFromCart(@AuthenticationPrincipal UserDetails userDetails, @PathVariable Long itemId) {
+        User user = userService.findByUsername(userDetails.getUsername());
+        boolean success = cartService.removeItemFromCart(user.getId(), itemId);
+        if (!success) {
+            return ResponseEntity.notFound().build();
+        }
+        return ResponseEntity.ok("Item removed successfully");
+    }
+
+
 }

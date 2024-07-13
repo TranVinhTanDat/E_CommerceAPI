@@ -1,5 +1,6 @@
 package com.example.shoppecommerce.Entity;
 
+import com.fasterxml.jackson.annotation.JsonBackReference;
 import jakarta.persistence.*;
 import lombok.Data;
 
@@ -13,6 +14,7 @@ public class CartItem {
 
     @ManyToOne
     @JoinColumn(name = "cart_id", nullable = false)
+    @JsonBackReference  // Để tránh lặp JSON khi serialize Cart
     private Cart cart;
 
     @ManyToOne

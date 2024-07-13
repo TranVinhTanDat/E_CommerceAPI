@@ -57,4 +57,20 @@ public class CartService {
         // Save the cart and items
         cartRepository.save(cart);
     }
+
+
+    public Cart getCartByUserId(Long userId) {
+        return cartRepository.findByUserId(userId).orElse(null);
+    }
+
+    @Transactional
+    public boolean removeItemFromCart(Long userId, Long itemId) {
+        Optional<CartItem> item = cartItemRepository.findById(itemId);
+        if (item.isPresent() && item.get().getCart().getUser().getId().equals(userId)) {
+            cartItemRepository.delete(item.get());
+            return true;
+        }
+        return false;
+    }
+
 }
