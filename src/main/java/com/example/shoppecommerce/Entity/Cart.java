@@ -1,14 +1,14 @@
 package com.example.shoppecommerce.Entity;
 
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
 import lombok.Data;
-
 import java.util.ArrayList;
 import java.util.List;
 
 @Data
 @Entity
-@Table(name = "carts")
+@Table(name = "cart")
 public class Cart {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -19,10 +19,10 @@ public class Cart {
     private User user;
 
     @OneToMany(mappedBy = "cart", cascade = CascadeType.ALL, orphanRemoval = true)
+    @JsonManagedReference  // Quản lý tham chiếu JSON cho CartItems
     private List<CartItem> items = new ArrayList<>();
 
     public Cart() {
-        // Initialize the items list
         this.items = new ArrayList<>();
     }
 

@@ -15,6 +15,10 @@ public class Product {
     private BigDecimal price;
     private String image;
 
+    @ManyToOne
+    @JoinColumn(name = "category_id")
+    private Category category;
+
     // Default constructor
     public Product() {}
 
@@ -62,5 +66,13 @@ public class Product {
 
     public void setImage(String image) {
         this.image = image;
+    }
+
+    public Category getCategory() {
+        return category;
+    }
+
+    public void setCategory(Category category) {
+        this.category = category;
     }
 }
