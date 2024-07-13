@@ -1,17 +1,12 @@
 package com.example.shoppecommerce.Service;
 
-import com.example.shoppecommerce.Entity.Cart;
-import com.example.shoppecommerce.Entity.CartItem;
-import com.example.shoppecommerce.Entity.Product;
-import com.example.shoppecommerce.Entity.User;
-import com.example.shoppecommerce.Repository.CartItemRepository;
-import com.example.shoppecommerce.Repository.CartRepository;
-import com.example.shoppecommerce.Repository.ProductRepository;
-import com.example.shoppecommerce.Repository.UserRepository;
+import com.example.shoppecommerce.Entity.*;
+import com.example.shoppecommerce.Repository.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
-import java.math.BigDecimal;
+import java.util.Optional;
 
 @Service
 public class CartService {
@@ -20,41 +15,46 @@ public class CartService {
     private CartRepository cartRepository;
 
     @Autowired
-    private CartItemRepository cartItemRepository;
-
-    @Autowired
     private ProductRepository productRepository;
 
     @Autowired
     private UserRepository userRepository;
 
-    public Cart getCartByUserId(Long userId) {
-        return cartRepository.findByUserId(userId);
-    }
+    @Autowired
+    private CartItemRepository cartItemRepository;
 
-    public Cart addItemToCart(Long userId, Long productId, int quantity) {
-        Cart cart = cartRepository.findByUserId(userId);
-        if (cart == null) {
-            cart = new Cart();
-            cart.setUserId(userId);
-            cart = cartRepository.save(cart);
+    @Transactional
+    public void addProductToCart(Long userId, CartItemRequest cartItemRequest) {
+        // Find user by userId
+        User user = userRepository.findById(userId).orElseThrow(() -> new RuntimeException("User not found"));
+
+        // // Tìm sản phẩm theo ID
+        Product product = productRepository.findById(cartItemRequest.getProductId()).orElseThrow(() -> new RuntimeException("Product not found"));
+
+        // Tìm giỏ hàng của người dùng, nếu không có thì tạo mới
+        Cart cart = cartRepository.findByUserId(userId).orElseGet(() -> {
+            Cart newCart = new Cart(user);
+            return cartRepository.save(newCart); //  // Lưu giỏ hàng mới
+        });
+
+        // Kiểm tra xem sản phẩm đã tồn tại trong giỏ hàng hay chưa
+        Optional<CartItem> existingCartItem = cart.getItems().stream()
+                .filter(item -> item.getProduct().getId().equals(cartItemRequest.getProductId()))
+                .findFirst();
+
+        if (existingCartItem.isPresent()) {
+            // Cập nhật số lượng nếu sản phẩm đã tồn tại trong giỏ hàng
+            existingCartItem.get().setQuantity(existingCartItem.get().getQuantity() + cartItemRequest.getQuantity());
+        } else {
+            // If the product is not in the cart, add a new item (Thêm sản phẩm mới vào giỏ hàng)
+            CartItem cartItem = new CartItem();
+            cartItem.setCart(cart);
+            cartItem.setProduct(product);
+            cartItem.setQuantity(cartItemRequest.getQuantity());
+            cart.getItems().add(cartItem);
         }
 
-        Product product = productRepository.findById(productId).orElseThrow(() -> new RuntimeException("Product not found"));
-
-        CartItem cartItem = new CartItem();
-        cartItem.setCart(cart);
-        cartItem.setProduct(product);
-        cartItem.setQuantity(quantity);
-        cartItem.setPrice(product.getPrice().multiply(BigDecimal.valueOf(quantity)));
-
-        cart.getItems().add(cartItem);
-
-        return cartRepository.save(cart);
-    }
-
-    public Long getUserIdFromUsername(String username) {
-        User user = userRepository.findByUsername(username).orElseThrow(() -> new RuntimeException("User not found"));
-        return user.getId();
+        // Save the cart and items
+        cartRepository.save(cart);
     }
 }

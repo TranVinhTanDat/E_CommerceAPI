@@ -21,6 +21,17 @@ public class UserService implements UserDetailsService {
     private PasswordEncoder passwordEncoder;
 
     public User saveUser(User user) {
+        // Kiểm tra username đã tồn tại chưa
+        if (userRepository.findByUsername(user.getUsername()).isPresent()) {
+            throw new RuntimeException("Username already exists");
+        }
+
+        // Kiểm tra email đã tồn tại chưa
+        if (userRepository.findByEmail(user.getEmail()).isPresent()) {
+            throw new RuntimeException("Email already exists");
+        }
+
+        // Mã hóa mật khẩu trước khi lưu vào cơ sở dữ liệu
         user.setPassword(passwordEncoder.encode(user.getPassword()));
         return userRepository.save(user);
     }
@@ -36,5 +47,3 @@ public class UserService implements UserDetailsService {
         return new org.springframework.security.core.userdetails.User(user.getUsername(), user.getPassword(), new ArrayList<>());
     }
 }
-
-
