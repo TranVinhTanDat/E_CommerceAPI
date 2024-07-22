@@ -18,11 +18,11 @@ public class AddressController {
     @Autowired
     private AddressService addressService;
 
-    @PostMapping("/Create")
+    @PostMapping("/create")
     public ResponseEntity<Address> addAddress(@RequestBody Address address) {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         User user = (User) authentication.getPrincipal();
-        Long userId = addressService.findUserIdByUsername(user.getUsername()); // Add this method in AddressService or UserService
+        Long userId = addressService.findUserIdByUsername(user.getUsername());
         Address newAddress = addressService.addAddress(userId, address);
         return ResponseEntity.ok(newAddress);
     }

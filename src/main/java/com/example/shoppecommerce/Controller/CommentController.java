@@ -1,6 +1,7 @@
 package com.example.shoppecommerce.Controller;
 
 import com.example.shoppecommerce.Entity.Comment;
+import com.example.shoppecommerce.Entity.CommentRequest;
 import com.example.shoppecommerce.Entity.Product;
 import com.example.shoppecommerce.Entity.User;
 import com.example.shoppecommerce.Service.CommentService;
@@ -37,13 +38,11 @@ public class CommentController {
     @PostMapping("/add")
     public ResponseEntity<String> addComment(
             @AuthenticationPrincipal UserDetails userDetails,
-            @RequestParam Long productId,
-            @RequestParam String commentText,
-            @RequestParam int rating
+            @RequestBody CommentRequest commentRequest
     ) {
         User user = userService.findByUsername(userDetails.getUsername());
-        Product product = productService.getProductById(productId);
-        commentService.addComment(user, product, commentText, rating);
+        Product product = productService.getProductById(commentRequest.getProductId());
+        commentService.addComment(user, product, commentRequest.getCommentText(), commentRequest.getRating());
         return ResponseEntity.ok("Comment added successfully");
     }
 
@@ -51,8 +50,7 @@ public class CommentController {
     public ResponseEntity<String> updateComment(
             @AuthenticationPrincipal UserDetails userDetails,
             @PathVariable Long commentId,
-            @RequestParam String commentText,
-            @RequestParam int rating
+            @RequestBody CommentRequest commentRequest
     ) {
         Optional<Comment> commentOptional = commentService.getCommentById(commentId);
         if (!commentOptional.isPresent()) {
@@ -67,7 +65,7 @@ public class CommentController {
             return ResponseEntity.status(403).body("You are not allowed to update this comment");
         }
 
-        commentService.updateComment(comment, commentText, rating);
+        commentService.updateComment(comment, commentRequest.getCommentText(), commentRequest.getRating());
         return ResponseEntity.ok("Comment updated successfully");
     }
 
