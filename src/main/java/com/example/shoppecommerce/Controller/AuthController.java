@@ -1,4 +1,3 @@
-
 package com.example.shoppecommerce.Controller;
 
 import com.example.shoppecommerce.Entity.TokenModel;
@@ -38,7 +37,8 @@ public class AuthController {
         try {
             userService.saveUser(user);
             return ResponseEntity.ok("User registered successfully");
-        } catch (RuntimeException e) {
+        } catch (Exception e) {
+            logger.error("Error occurred while registering user", e);
             return ResponseEntity.badRequest().body(e.getMessage());
         }
     }
@@ -56,6 +56,17 @@ public class AuthController {
         final Long expiresIn = jwtService.getExpiresIn();
 
         logger.info("User authenticated successfully: {} (ID: {})", user.getUsername(), authenticatedUser.getId());
-        return new TokenModel(jwt, refreshToken, expiresIn);
+        return new TokenModel(jwt, refreshToken, expiresIn, authenticatedUser.getRole());
+    }
+
+    @GetMapping("/user")
+    public ResponseEntity<?> getUser(@RequestHeader("Authorization") String token) {
+        try {
+            String username = jwtService.extractUsername(token.substring(7)); // Remove "Bearer " prefix
+            User user = userService.findByUsername(username);
+            return ResponseEntity.ok(user);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
     }
 }

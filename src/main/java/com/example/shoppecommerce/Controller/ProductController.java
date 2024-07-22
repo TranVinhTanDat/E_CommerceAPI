@@ -3,6 +3,7 @@ package com.example.shoppecommerce.Controller;
 import com.example.shoppecommerce.Entity.Product;
 import com.example.shoppecommerce.Service.ProductService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -17,6 +18,11 @@ public class ProductController {
     @GetMapping
     public List<Product> getAllProducts() {
         return productService.getAllProducts();
+    }
+
+    @GetMapping("/page")
+    public Page<Product> getAllProductsPage(@RequestParam int page, @RequestParam int size, @RequestParam(required = false) String category) {
+        return productService.getAllProductsPage(page, size, category);
     }
 
     @GetMapping("/{id}")

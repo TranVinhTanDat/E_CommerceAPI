@@ -41,6 +41,13 @@ public class CartController {
         }
         return ResponseEntity.ok(cart.getItems());
     }
+    @DeleteMapping("/clear")
+    public ResponseEntity<Void> clearCart(@AuthenticationPrincipal UserDetails userDetails) {
+        String username = userDetails.getUsername();
+        cartService.clearCart(username);
+        return ResponseEntity.ok().build();
+    }
+
 
     @DeleteMapping("/remove/{itemId}")
     public ResponseEntity<?> removeItemFromCart(@AuthenticationPrincipal UserDetails userDetails, @PathVariable Long itemId) {
@@ -51,6 +58,17 @@ public class CartController {
         }
         return ResponseEntity.ok("Item removed successfully");
     }
+
+    @PostMapping("/update/{itemId}")
+    public ResponseEntity<?> updateCartItemQuantity(@AuthenticationPrincipal UserDetails userDetails, @PathVariable Long itemId, @RequestBody CartItemRequest cartItemRequest) {
+        User user = userService.findByUsername(userDetails.getUsername());
+        boolean success = cartService.updateCartItemQuantity(user.getId(), itemId, cartItemRequest.getQuantity());
+        if (!success) {
+            return ResponseEntity.notFound().build();
+        }
+        return ResponseEntity.ok("Cart item quantity updated successfully");
+    }
+
 
 
 }

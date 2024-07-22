@@ -5,6 +5,7 @@ public class CommentRequest {
     private String commentText;
     private int rating;
 
+    // Getters and Setters
     public Long getProductId() {
         return productId;
     }

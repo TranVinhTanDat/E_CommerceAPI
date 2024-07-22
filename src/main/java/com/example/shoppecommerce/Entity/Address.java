@@ -39,6 +39,9 @@ public class Address {
     @Column(name = "country", nullable = false)
     private String country;
 
+    @Column(name = "phone", nullable = false)
+    private String phone;  // Thêm thuộc tính phone
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt = LocalDateTime.now();
 
