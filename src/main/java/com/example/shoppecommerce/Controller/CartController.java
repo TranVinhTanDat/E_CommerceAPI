@@ -41,13 +41,13 @@ public class CartController {
         }
         return ResponseEntity.ok(cart.getItems());
     }
+
     @DeleteMapping("/clear")
     public ResponseEntity<Void> clearCart(@AuthenticationPrincipal UserDetails userDetails) {
         String username = userDetails.getUsername();
         cartService.clearCart(username);
         return ResponseEntity.ok().build();
     }
-
 
     @DeleteMapping("/remove/{itemId}")
     public ResponseEntity<?> removeItemFromCart(@AuthenticationPrincipal UserDetails userDetails, @PathVariable Long itemId) {
@@ -68,7 +68,4 @@ public class CartController {
         }
         return ResponseEntity.ok("Cart item quantity updated successfully");
     }
-
-
-
 }

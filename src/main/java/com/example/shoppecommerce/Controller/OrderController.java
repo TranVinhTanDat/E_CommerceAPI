@@ -2,15 +2,19 @@ package com.example.shoppecommerce.Controller;
 
 import com.example.shoppecommerce.DTO.OrderDTO;
 import com.example.shoppecommerce.Entity.Order;
+import com.example.shoppecommerce.Entity.OrderStatus;
+import com.example.shoppecommerce.Entity.StatsResponse;
 import com.example.shoppecommerce.Entity.User;
 import com.example.shoppecommerce.Service.OrderService;
 import com.example.shoppecommerce.Service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
+import java.math.BigDecimal;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
@@ -37,24 +41,33 @@ public class OrderController {
     }
 
     @GetMapping("/user")
-    public ResponseEntity<List<Order>> getUserOrders(@AuthenticationPrincipal UserDetails userDetails) {
+    public ResponseEntity<List<Order>> getUserOrders(
+            @AuthenticationPrincipal UserDetails userDetails,
+            @RequestParam(value = "status", required = false) String status) {
+
         User user = userService.findByUsername(userDetails.getUsername());
         if (user == null) {
             return ResponseEntity.badRequest().body(null);
         }
-        List<Order> orders = orderService.getUserOrders(user.getId());
+
+        List<Order> orders;
+        if (status != null) {
+            orders = orderService.getUserOrdersByStatus(user.getId(), status);
+        } else {
+            orders = orderService.getUserOrders(user.getId());
+        }
+
+        // Đảm bảo không gửi thông tin người dùng về frontend để bảo mật
         orders.forEach(order -> {
             order.setUser(null);
-            // Loại bỏ các liên kết vòng tròn nếu có
             order.getItems().forEach(item -> {
                 item.setOrder(null);
-                item.getProduct().setCategory(null);  // Nếu có liên kết vòng tròn
+                item.getProduct().setCategory(null);
             });
         });
+
         return ResponseEntity.ok(orders);
     }
-
-
 
 
     @GetMapping("/details/{orderId}")
@@ -66,8 +79,6 @@ public class OrderController {
         return ResponseEntity.ok(order);
     }
 
-
-
     @PostMapping("/mark-as-processing/{orderId}")
     public ResponseEntity<Void> markOrderAsProcessing(@PathVariable Long orderId) {
         orderService.markOrderAsProcessing(orderId);
@@ -75,30 +86,43 @@ public class OrderController {
     }
 
     @PostMapping("/confirm-bank-transfer/{orderId}")
-    public ResponseEntity<Void> confirmBankTransfer(@PathVariable Long orderId) {
-        orderService.confirmBankTransfer(orderId);
-        return ResponseEntity.ok().build();
+    public ResponseEntity<String> confirmBankTransfer(@PathVariable Long orderId) {
+        try {
+            orderService.confirmBankTransfer(orderId);
+            return ResponseEntity.ok("Order status updated to PROCESSING");
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
     }
 
-    @PostMapping("/reject-bank-transfer/{orderId}")
-    public ResponseEntity<Void> rejectBankTransfer(@PathVariable Long orderId) {
-        orderService.rejectBankTransfer(orderId);
-        return ResponseEntity.ok().build();
+    @PostMapping("/mark-as-shipped/{orderId}")
+    public ResponseEntity<String> markOrderAsShipped(@PathVariable Long orderId) {
+        try {
+            orderService.markOrderAsProcessing(orderId);
+            return ResponseEntity.ok("Order status updated to SHIPPED");
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
     }
 
+    @PostMapping("/mark-as-delivered/{orderId}")
+    public ResponseEntity<String> markOrderAsDelivered(@PathVariable Long orderId) {
+        try {
+            orderService.markOrderAsShipped(orderId);
+            return ResponseEntity.ok("Order status updated to DELIVERED");
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
 
     @GetMapping("/all")
     public ResponseEntity<List<OrderDTO>> getAllOrders(@RequestParam(value = "date", required = false) String dateStr) {
         List<OrderDTO> orders;
         if (dateStr != null) {
             try {
-                java.sql.Date date = java.sql.Date.valueOf(dateStr);
+                // ✅ Đổi String -> java.sql.Date
+                java.sql.Date date = java.sql.Date.valueOf(dateStr.trim());
                 orders = orderService.getOrdersByDate(date);
-                if (orders.isEmpty()) {
-                    System.out.println("No orders found for date: " + date);
-                } else {
-                    System.out.println("Orders found: " + orders.size());
-                }
             } catch (IllegalArgumentException e) {
                 return ResponseEntity.badRequest().body(null);
             }
@@ -108,20 +132,34 @@ public class OrderController {
         return ResponseEntity.ok(orders);
     }
 
-
-
+    @PostMapping("/update-status/{orderId}")
+    public ResponseEntity<String> updateOrderStatus(@PathVariable Long orderId, @RequestParam String newStatus) {
+        try {
+            OrderStatus statusEnum = OrderStatus.valueOf(newStatus.toUpperCase());
+            orderService.updateOrderStatus(orderId, statusEnum);
+            return ResponseEntity.ok("Order status updated to " + newStatus);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body("Invalid order status: " + newStatus);
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
 
     // Add these in OrderController
-
     @PostMapping("/place-temporary")
-    public ResponseEntity<Order> placeTemporaryOrder(@AuthenticationPrincipal UserDetails userDetails) {
+    public ResponseEntity<?> placeTemporaryOrder(@AuthenticationPrincipal UserDetails userDetails) {
         User user = userService.findByUsername(userDetails.getUsername());
         if (user == null) {
-            return ResponseEntity.badRequest().body(null);
+            return ResponseEntity.badRequest().body("User not found");
         }
-        Order order = orderService.placeTemporaryOrder(user.getId());
-        return ResponseEntity.ok(order);
+        try {
+            Order order = orderService.placeTemporaryOrder(user.getId());
+            return ResponseEntity.ok(order);
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
     }
+
 
     @PostMapping("/finalize/{orderId}")
     public ResponseEntity<Void> finalizeOrder(@PathVariable Long orderId) {
@@ -150,5 +188,23 @@ public class OrderController {
         return ResponseEntity.ok(orders);
     }
 
+
+    // API thống kê
+    @GetMapping("/statistics")
+    public ResponseEntity<Object> getStatistics() {
+        try {
+            // Lấy dữ liệu thống kê
+            long totalOrders = orderService.getTotalOrders();
+            BigDecimal totalRevenue = orderService.getTotalRevenue();
+            long newUsers = orderService.getNewUsersInMonth();
+            long totalProducts = orderService.getTotalProducts();
+            List<Object[]> salesOverTime = orderService.getSalesByMonth();
+
+            // Đóng gói thành dữ liệu trả về
+            return ResponseEntity.ok(new StatsResponse(totalOrders, totalRevenue, newUsers, totalProducts, salesOverTime));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error fetching statistics");
+        }
+    }
 
 }

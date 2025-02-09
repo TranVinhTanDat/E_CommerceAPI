@@ -5,6 +5,7 @@ import com.example.shoppecommerce.Entity.CommentRequest;
 import com.example.shoppecommerce.Entity.Product;
 import com.example.shoppecommerce.Entity.User;
 import com.example.shoppecommerce.Service.CommentService;
+import com.example.shoppecommerce.Service.OrderService;
 import com.example.shoppecommerce.Service.ProductService;
 import com.example.shoppecommerce.Service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -29,6 +30,9 @@ public class CommentController {
     @Autowired
     private UserService userService;
 
+    @Autowired
+    private OrderService orderService;
+
     @GetMapping("/product/{productId}")
     public ResponseEntity<List<Comment>> getCommentsByProductId(@PathVariable Long productId) {
         List<Comment> comments = commentService.getCommentsByProductId(productId);
@@ -42,6 +46,14 @@ public class CommentController {
     ) {
         User user = userService.findByUsername(userDetails.getUsername());
         Product product = productService.getProductById(commentRequest.getProductId());
+
+        // ✅ Kiểm tra xem user đã mua sản phẩm chưa và đơn hàng phải ở trạng thái "DELIVERED"
+        boolean hasPurchased = orderService.hasUserPurchasedProduct(user.getId(), product.getId());
+
+        if (!hasPurchased) {
+            return ResponseEntity.status(403).body("You can only review products you have purchased and received.");
+        }
+
         commentService.addComment(user, product, commentRequest.getCommentText(), commentRequest.getRating());
         return ResponseEntity.ok("Comment added successfully");
     }

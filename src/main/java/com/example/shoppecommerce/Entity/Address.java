@@ -48,6 +48,10 @@ public class Address {
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt = LocalDateTime.now();
 
+    @Column(name = "email", nullable = false)
+    private String email;
+
+
     @PreUpdate
     protected void onUpdate() {
         updatedAt = LocalDateTime.now();

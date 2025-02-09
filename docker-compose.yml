@@ -1,0 +1,36 @@
+version: '3'
+services:
+  db:
+    image: mysql:8.0
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: ecommercewebapi
+      MYSQL_USER: user
+      MYSQL_PASSWORD: password
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+
+  app:
+    build:
+      context: .
+    image: shoppecommerce
+    ports:
+      - "8080:8080"
+    depends_on:
+      - db
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:mysql://db:3306/ecommercewebapi
+      SPRING_DATASOURCE_USERNAME: user
+      SPRING_DATASOURCE_PASSWORD: password
+      SPRING_JPA_HIBERNATE_DDL_AUTO: update
+      JWT_SECRET: zvuUQR2h46Pusr2CIkvMAE0yqStXDBeVvBmc+lTwJvE=
+      JWT_REFRESH_SECRET: zvuUQR2h46Pusr2CIkvMAE0yqStXDBeVvBmc+lTwJvE=
+      MOMO_PARTNER_CODE: MOMO123456789
+      MOMO_ACCESS_KEY: F8BBA842ECF85
+      MOMO_SECRET_KEY: K951B6PE1waDMi640xX08PD3vg6EkVlz
+      MOMO_RETURN_URL: https://your-website.com/payment-success
+      MOMO_NOTIFY_URL: https://your-server.com/api/payment/momo-notify
+volumes:
+  mysql_data:

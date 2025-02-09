@@ -1,9 +1,13 @@
 package com.example.shoppecommerce.Controller;
 
+import com.example.shoppecommerce.Entity.ApiResponse;
 import com.example.shoppecommerce.Entity.Product;
 import com.example.shoppecommerce.Service.ProductService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -21,8 +25,13 @@ public class ProductController {
     }
 
     @GetMapping("/page")
-    public Page<Product> getAllProductsPage(@RequestParam int page, @RequestParam int size, @RequestParam(required = false) String category) {
+    public Page<Product> getAllProductsPagew(@RequestParam int page, @RequestParam int size, @RequestParam(required = false) String category) {
         return productService.getAllProductsPage(page, size, category);
+    }
+
+    @GetMapping("/search")
+    public Page<Product> searchProducts(@RequestParam int page, @RequestParam int size, @RequestParam String keyword, @RequestParam double maxPrice, @RequestParam(required = false) String category) {
+        return productService.searchProducts(page, size, keyword, maxPrice, category);
     }
 
     @GetMapping("/{id}")
@@ -30,24 +39,9 @@ public class ProductController {
         return productService.getProductById(id);
     }
 
-    @PostMapping
-    public Product createProduct(@RequestBody Product product) {
-        return productService.saveProduct(product);
+    @GetMapping("/page/admin")
+    public Page<Product> getAllProductsPageAdmin(@RequestParam int page, @RequestParam int size, @RequestParam(required = false) String category) {
+        return productService.getAllProductsPageAdmin(page, category);
     }
 
-    @PutMapping("/{id}")
-    public Product updateProduct(@PathVariable Long id, @RequestBody Product product) {
-        Product existingProduct = productService.getProductById(id);
-        if (existingProduct != null) {
-            product.setId(id);
-            return productService.saveProduct(product);
-        } else {
-            return null;
-        }
-    }
-
-    @DeleteMapping("/{id}")
-    public void deleteProduct(@PathVariable Long id) {
-        productService.deleteProduct(id);
-    }
 }
