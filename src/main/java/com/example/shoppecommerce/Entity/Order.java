@@ -28,7 +28,10 @@ public class Order {
     @Column(nullable = false)
     private BigDecimal total;
 
-    private String status;
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private OrderStatus status; // Sử dụng ENUM thay vì String
+
 
     @Column(name = "created_at", insertable = false, updatable = false)
     @Temporal(TemporalType.TIMESTAMP)

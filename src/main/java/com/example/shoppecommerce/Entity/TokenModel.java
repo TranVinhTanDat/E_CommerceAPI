@@ -4,16 +4,26 @@ public class TokenModel {
     private String accessToken;
     private String refreshToken;
     private Long expiresIn;
-    private String role; // Thêm dòng này
+    private String role;
+    private Long id;  // Thêm trường id của người dùng
 
-    public TokenModel(String accessToken, String refreshToken, Long expiresIn, String role) {
+    public TokenModel(String accessToken, String refreshToken, Long expiresIn, String role, Long id) {
         this.accessToken = accessToken;
         this.refreshToken = refreshToken;
         this.expiresIn = expiresIn;
-        this.role = role; // Thêm dòng này
+        this.role = role;
+        this.id = id;
     }
 
-    // Getters and Setters
+    public Long getId() {
+        return id;
+    }
+
+    public void setId(Long id) {
+        this.id = id;
+    }
+
+// Getters and Setters
 
     public String getAccessToken() {
         return accessToken;
