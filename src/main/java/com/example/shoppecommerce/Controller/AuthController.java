@@ -107,7 +107,7 @@ public class AuthController {
             String jwtToken = jwtService.generateToken(userDetails, user.getId(), user.getRole());
             String refreshToken = jwtService.generateRefreshToken(userDetails);
 
-            System.out.println("✅ Generated JWT Token : " + jwtToken);
+            System.out.println("✅ Generated JWT Token: " + jwtToken);
 
 
             return ResponseEntity.ok(new TokenModel(jwtToken, refreshToken, jwtService.getExpiresIn(), user.getRole(), user.getId()));
