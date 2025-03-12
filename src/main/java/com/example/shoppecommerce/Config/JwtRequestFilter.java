@@ -36,6 +36,10 @@ public class JwtRequestFilter extends OncePerRequestFilter {
 
         final String requestTokenHeader = request.getHeader("Authorization");
 
+//        if (request.getRequestURI().contains("/ws")) {
+//            System.out.println("🛑 WebSocket Request detected: " + request.getRequestURI());
+//        }
+
         String username = null;
         String jwtToken = null;
 

@@ -9,6 +9,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
 
+import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.security.KeyFactory;
@@ -21,6 +22,8 @@ import java.util.Date;
 import java.util.Map;
 import java.util.function.Function;
 import java.util.logging.Logger;
+import org.springframework.core.io.ClassPathResource;
+import org.springframework.core.io.Resource;
 
 @Service
 public class JwtService {
@@ -38,34 +41,38 @@ public class JwtService {
 
     @PostConstruct
     public void init() throws Exception {
-        String privateKeyPath = "src/main/resources/private_key.pem";
-        String publicKeyPath = "src/main/resources/public_key.pem";
+        Resource privateKeyResource = new ClassPathResource("private_key.pem");
+        Resource publicKeyResource = new ClassPathResource("public_key.pem");
 
-        // Kiểm tra file có tồn tại không
-        if (!Files.exists(Paths.get(privateKeyPath)) || !Files.exists(Paths.get(publicKeyPath))) {
+        if (!privateKeyResource.exists() || !publicKeyResource.exists()) {
             throw new RuntimeException("ERROR: JWT Key files not found! Check private_key.pem and public_key.pem.");
         }
 
-        // Đọc Private Key
-        String privateKeyContent = new String(Files.readAllBytes(Paths.get(privateKeyPath)))
-                .replace("-----BEGIN PRIVATE KEY-----", "")
-                .replace("-----END PRIVATE KEY-----", "")
-                .replaceAll("\\s+", "");
+        // Đọc Private Key từ classpath
+        try (InputStream privateKeyStream = privateKeyResource.getInputStream()) {
+            String privateKeyContent = new String(privateKeyStream.readAllBytes())
+                    .replace("-----BEGIN PRIVATE KEY-----", "")
+                    .replace("-----END PRIVATE KEY-----", "")
+                    .replaceAll("\\s+", "");
 
-        byte[] privateKeyBytes = Base64.getDecoder().decode(privateKeyContent);
-        PKCS8EncodedKeySpec privateKeySpec = new PKCS8EncodedKeySpec(privateKeyBytes);
-        KeyFactory keyFactory = KeyFactory.getInstance("RSA");
-        this.privateKey = keyFactory.generatePrivate(privateKeySpec);
+            byte[] privateKeyBytes = Base64.getDecoder().decode(privateKeyContent);
+            PKCS8EncodedKeySpec privateKeySpec = new PKCS8EncodedKeySpec(privateKeyBytes);
+            KeyFactory keyFactory = KeyFactory.getInstance("RSA");
+            this.privateKey = keyFactory.generatePrivate(privateKeySpec);
+        }
 
-        // Đọc Public Key
-        String publicKeyContent = new String(Files.readAllBytes(Paths.get(publicKeyPath)))
-                .replace("-----BEGIN PUBLIC KEY-----", "")
-                .replace("-----END PUBLIC KEY-----", "")
-                .replaceAll("\\s+", "");
+        // Đọc Public Key từ classpath
+        try (InputStream publicKeyStream = publicKeyResource.getInputStream()) {
+            String publicKeyContent = new String(publicKeyStream.readAllBytes())
+                    .replace("-----BEGIN PUBLIC KEY-----", "")
+                    .replace("-----END PUBLIC KEY-----", "")
+                    .replaceAll("\\s+", "");
 
-        byte[] publicKeyBytes = Base64.getDecoder().decode(publicKeyContent);
-        X509EncodedKeySpec publicKeySpec = new X509EncodedKeySpec(publicKeyBytes);
-        this.publicKey = keyFactory.generatePublic(publicKeySpec);
+            byte[] publicKeyBytes = Base64.getDecoder().decode(publicKeyContent);
+            X509EncodedKeySpec publicKeySpec = new X509EncodedKeySpec(publicKeyBytes);
+            KeyFactory keyFactory = KeyFactory.getInstance("RSA");
+            this.publicKey = keyFactory.generatePublic(publicKeySpec);
+        }
 
         System.out.println("✅ Private/Public Key loaded successfully.");
     }

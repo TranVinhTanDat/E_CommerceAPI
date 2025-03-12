@@ -45,22 +45,12 @@ public class OrderService {
     public Order placeOrder(Long userId) {
         logger.info("📦 Bắt đầu đặt hàng cho user ID: {}", userId);
 
-        Cart cart = cartRepository.findByUserId(userId).orElseThrow(() -> {
-            logger.error("❌ Không tìm thấy giỏ hàng!");
-            return new RuntimeException("Cart not found");
-        });
+        User user = userRepository.findById(userId).orElseThrow(() -> new RuntimeException("User not found"));
+        Cart cart = cartRepository.findByUserId(userId).orElseThrow(() -> new RuntimeException("Cart not found"));
 
         List<CartItem> cartItems = cartItemRepository.findByCartId(cart.getId());
+        if (cartItems.isEmpty()) throw new RuntimeException("No items in the cart");
 
-        // Kiểm tra giỏ hàng trống
-        if (cartItems.isEmpty()) {
-            logger.warn("⚠️ Không có sản phẩm nào trong giỏ hàng!");
-            throw new RuntimeException("No items in the cart to place the order");
-        }
-
-        User user = userRepository.findById(userId).orElseThrow(() -> new RuntimeException("User not found"));
-
-        // Tạo đơn hàng
         Order order = new Order();
         order.setUser(user);
         order.setStatus(OrderStatus.PENDING);
@@ -77,7 +67,6 @@ public class OrderService {
                 throw new RuntimeException("Not enough stock for product: " + product.getName());
             }
 
-            // Cập nhật số lượng sản phẩm
             product.setQuantity(product.getQuantity() - cartItem.getQuantity());
             productRepository.save(product);
 
@@ -91,21 +80,18 @@ public class OrderService {
             orderItems.add(orderItem);
         }
 
-        // Cập nhật thông tin đơn hàng
         order.setItems(orderItems);
         order.setTotal(total);
         orderRepository.save(order);
 
-        // Xóa giỏ hàng sau khi đặt thành công
         cartItemRepository.deleteAll(cartItems);
-        logger.info("🗑️ Giỏ hàng đã được xóa sau khi đặt hàng thành công!");
+        logger.info("🗑️ Giỏ hàng đã được xóa sau khi đặt hàng!");
 
-        // Gửi email thông báo cho người dùng
         try {
             emailService.sendOrderConfirmationEmail(user.getEmail(), order.getId().toString(), order.getTotal());
-            logger.info("✅ Email thông báo đơn hàng đã được gửi thành công cho user ID: {}", userId);
+            logger.info("✅ Email xác nhận đơn hàng đã được gửi!");
         } catch (MessagingException e) {
-            logger.error("❌ Lỗi khi gửi email thông báo cho user ID: {}", userId, e);
+            logger.error("❌ Lỗi khi gửi email xác nhận!", e);
         }
 
         return order;
@@ -267,20 +253,18 @@ public class OrderService {
         Order order = orderRepository.findById(orderId)
                 .orElseThrow(() -> new RuntimeException("Order not found"));
 
-        OrderStatus currentStatus = order.getStatus();
-
-        if (!isValidStatusTransition(currentStatus, newStatus)) {
-            throw new RuntimeException("Invalid status transition from " + currentStatus + " to " + newStatus);
+        if (!isValidStatusTransition(order.getStatus(), newStatus)) {
+            throw new RuntimeException("Invalid status transition from " + order.getStatus() + " to " + newStatus);
         }
 
         order.setStatus(newStatus);
         orderRepository.save(order);
-        logger.info("Order ID {} updated from {} to {}", orderId, currentStatus, newStatus);
+        logger.info("Order ID {} cập nhật trạng thái: {}", orderId, newStatus);
     }
 
     private boolean isValidStatusTransition(OrderStatus current, OrderStatus next) {
         switch (current) {
-            case PENDING: return next == OrderStatus.PROCESSING || next == OrderStatus.CANCELED; // ✅ Cho phép hủy
+            case PENDING: return next == OrderStatus.PROCESSING || next == OrderStatus.CANCELED;
             case PROCESSING: return next == OrderStatus.SHIPPED;
             case SHIPPED: return next == OrderStatus.DELIVERED;
             case DELIVERED: return next == OrderStatus.REFUNDED;

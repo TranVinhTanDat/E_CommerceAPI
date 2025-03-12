@@ -22,26 +22,33 @@ public class Order {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
-    @JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
     private User user;
 
     @Column(nullable = false)
-    private BigDecimal total;
+    private BigDecimal total = BigDecimal.ZERO;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private OrderStatus status; // Sử dụng ENUM thay vì String
+    private OrderStatus status;
 
-
-    @Column(name = "created_at", insertable = false, updatable = false)
     @Temporal(TemporalType.TIMESTAMP)
+    @Column(name = "created_at", updatable = false)
     private Date createdAt;
 
-    @Column(name = "updated_at")
     @Temporal(TemporalType.TIMESTAMP)
+    @Column(name = "updated_at")
     private Date updatedAt;
 
     @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
-    @JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
     private List<OrderItem> items = new ArrayList<>();
+
+    @PrePersist
+    protected void onCreate() {
+        createdAt = new Date();
+    }
+
+    @PreUpdate
+    protected void onUpdate() {
+        updatedAt = new Date();
+    }
 }
