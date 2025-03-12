@@ -53,7 +53,6 @@ public class GoogleService {
         newUser.setEmail(email);
         newUser.setAvatar(picture);
         newUser.setRole("USER");
-
         return userRepository.save(newUser);
     }
 
