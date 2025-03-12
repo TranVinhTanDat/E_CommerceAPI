@@ -47,6 +47,8 @@ public class SecurityConfig {
                         .requestMatchers("/users/**").permitAll()
                         .requestMatchers("/cart/**", "/orders/user/**", "/addresses/**", "/comments/**").authenticated()
                         .requestMatchers("/admin/products/**", "/admin/orders/all").hasRole("ADMIN")
+                        .requestMatchers("/messages/**").permitAll() // 🔥 Mở quyền API tin nhắn
+                        .requestMatchers("/ws/**").permitAll()
                         .anyRequest().authenticated()
                 )
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
@@ -67,7 +69,7 @@ public class SecurityConfig {
     public UrlBasedCorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
         configuration.setAllowCredentials(true);
-        configuration.addAllowedOrigin("http://localhost:3000"); // Đảm bảo frontend URL đúng
+        configuration.addAllowedOrigin("http://localhost:3000");
         configuration.addAllowedHeader("*");
         configuration.addAllowedMethod("*");
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
