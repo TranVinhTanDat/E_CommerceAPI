@@ -1,7 +1,7 @@
 # Sử dụng image OpenJDK 17 làm base image
 FROM openjdk:17-jdk-slim
 
-# Cài đặt Maven (nếu dùng Maven)
+# Cài đặt Maven
 RUN apt-get update && apt-get install -y maven
 
 # Đặt thư mục làm việc
@@ -10,7 +10,8 @@ WORKDIR /app
 # Copy toàn bộ mã nguồn vào container
 COPY . .
 
-# Build ứng dụng để tạo file JAR
+# Thêm dòng này để vô hiệu hóa cache
+# Force rebuild
 RUN mvn clean package -DskipTests
 
 # Copy file JAR đã build vào tên app.jar
