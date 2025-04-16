@@ -16,4 +16,5 @@ public class Message {
     private String receiver;
     private String content;
     private LocalDateTime timestamp = LocalDateTime.now();
+    private boolean isRead = false; // Thêm trường isRead, mặc định là false (chưa đọc)
 }

@@ -36,7 +36,7 @@ public class MomoPaymentService {
     public String createPayment(String orderId, String amount, String orderInfo) {
         try {
             int amountInt = new java.math.BigDecimal(amount).intValue();
-            if (amountInt < 1000 || amountInt > 50000000) {
+            if (amountInt < 1 || amountInt > 50000000) {
                 throw new IllegalArgumentException("Số tiền phải từ 1,000 đến 50,000,000 VND.");
             }
 

@@ -1,6 +1,8 @@
 package com.example.shoppecommerce.Service;
 
 import com.example.shoppecommerce.DTO.OrderDTO;
+import com.example.shoppecommerce.DTO.OrderDetailsDTO;
+import com.example.shoppecommerce.DTO.OrderItemDTO;
 import com.example.shoppecommerce.Entity.*;
 import com.example.shoppecommerce.Repository.*;
 import jakarta.mail.MessagingException;
@@ -15,6 +17,7 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 public class OrderService {
@@ -308,5 +311,49 @@ public class OrderService {
     // Thống kê doanh thu theo tháng
     public List<Object[]> getSalesByMonth() {
         return orderRepository.getSalesByMonth(); // Giả sử bạn có một truy vấn cho việc này
+    }
+
+    public long getNewOrdersCount() {
+        return orderRepository.countNewOrdersByDate(List.of(OrderStatus.PENDING, OrderStatus.PROCESSING));
+    }
+
+    public List<Order> getNewOrders() {
+        List<Order> newOrders = orderRepository.findByStatusInAndDate(List.of(OrderStatus.PENDING, OrderStatus.PROCESSING));
+        newOrders.forEach(order -> {
+            order.setUser(null); // Không gửi thông tin user về frontend
+            order.getItems().forEach(item -> {
+                item.setOrder(null);
+                item.getProduct().setCategory(null);
+            });
+        });
+        return newOrders;
+    }
+
+    public OrderDetailsDTO getOrderDetailsAsDTO(Long orderId) {
+        Order order = orderRepository.findById(orderId).orElseThrow(() -> new RuntimeException("Order not found"));
+        order.getItems().size(); // Đảm bảo items được tải
+
+        OrderDetailsDTO orderDetailsDTO = new OrderDetailsDTO();
+        orderDetailsDTO.setId(order.getId());
+        orderDetailsDTO.setUserName(order.getUser().getUsername());
+        orderDetailsDTO.setUserEmail(order.getUser().getEmail());
+        orderDetailsDTO.setTotal(order.getTotal());
+        orderDetailsDTO.setStatus(order.getStatus().name());
+        orderDetailsDTO.setCreatedAt(order.getCreatedAt());
+        orderDetailsDTO.setUpdatedAt(order.getUpdatedAt());
+
+        List<OrderItemDTO> itemDTOs = order.getItems().stream().map(item -> {
+            OrderItemDTO itemDTO = new OrderItemDTO();
+            itemDTO.setId(item.getId());
+            itemDTO.setProductId(item.getProduct().getId());
+            itemDTO.setProductName(item.getProduct().getName());
+            itemDTO.setImage(item.getProduct().getImage());
+            itemDTO.setQuantity(item.getQuantity());
+            itemDTO.setPrice(item.getPrice());
+            return itemDTO;
+        }).collect(Collectors.toList());
+
+        orderDetailsDTO.setItems(itemDTOs);
+        return orderDetailsDTO;
     }
 }

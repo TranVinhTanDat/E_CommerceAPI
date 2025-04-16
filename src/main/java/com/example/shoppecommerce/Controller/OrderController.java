@@ -1,6 +1,7 @@
 package com.example.shoppecommerce.Controller;
 
 import com.example.shoppecommerce.DTO.OrderDTO;
+import com.example.shoppecommerce.DTO.OrderDetailsDTO;
 import com.example.shoppecommerce.Entity.Order;
 import com.example.shoppecommerce.Entity.OrderStatus;
 import com.example.shoppecommerce.Entity.StatsResponse;
@@ -71,12 +72,13 @@ public class OrderController {
 
 
     @GetMapping("/details/{orderId}")
-    public ResponseEntity<Order> getOrderDetails(@PathVariable Long orderId) {
-        Order order = orderService.getOrderDetails(orderId);
-        if (order == null) {
+    public ResponseEntity<OrderDetailsDTO> getOrderDetails(@PathVariable Long orderId) {
+        try {
+            OrderDetailsDTO orderDetails = orderService.getOrderDetailsAsDTO(orderId);
+            return ResponseEntity.ok(orderDetails);
+        } catch (RuntimeException e) {
             return ResponseEntity.notFound().build();
         }
-        return ResponseEntity.ok(order);
     }
 
     @PostMapping("/mark-as-processing/{orderId}")
@@ -204,6 +206,28 @@ public class OrderController {
             return ResponseEntity.ok(new StatsResponse(totalOrders, totalRevenue, newUsers, totalProducts, salesOverTime));
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error fetching statistics");
+        }
+    }
+
+    // Bổ sung endpoint để lấy số lượng đơn hàng mới hôm nay
+    @GetMapping("/new-count")
+    public ResponseEntity<Long> getNewOrdersCount() {
+        try {
+            long newOrdersCount = orderService.getNewOrdersCount();
+            return ResponseEntity.ok(newOrdersCount);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(0L);
+        }
+    }
+
+    // Bổ sung endpoint để lấy danh sách đơn hàng mới hôm nay
+    @GetMapping("/new")
+    public ResponseEntity<List<Order>> getNewOrders() {
+        try {
+            List<Order> newOrders = orderService.getNewOrders();
+            return ResponseEntity.ok(newOrders);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
         }
     }
 
