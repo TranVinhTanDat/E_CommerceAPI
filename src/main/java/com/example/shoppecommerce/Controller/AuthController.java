@@ -117,17 +117,6 @@ public class AuthController {
         }
     }
 
-
-
-
-
-
-
-
-
-
-
-
     @PostMapping("/register")
     public ResponseEntity<?> register(@RequestBody User user) {
         try {
@@ -266,9 +255,4 @@ public class AuthController {
         }
         return ResponseEntity.badRequest().body("Invalid OTP or User not found.");
     }
-
-
-
-
-
 }

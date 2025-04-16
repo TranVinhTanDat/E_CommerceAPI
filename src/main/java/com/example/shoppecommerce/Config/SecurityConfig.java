@@ -46,7 +46,7 @@ public class SecurityConfig {
                         .requestMatchers("/categories/**", "/products/**").permitAll() // Các endpoint công khai
                         .requestMatchers("/users/**").permitAll()
                         .requestMatchers("/cart/**", "/orders/user/**", "/addresses/**", "/comments/**").authenticated()
-                        .requestMatchers("/admin/products/**", "/admin/orders/all").hasRole("ADMIN")
+                        .requestMatchers("/admin/products/**", "/admin/orders/**").hasRole("ADMIN")
                         .requestMatchers("/messages/**").permitAll() // 🔥 Mở quyền API tin nhắn
                         .requestMatchers("/ws/**").permitAll()
                         .anyRequest().authenticated()

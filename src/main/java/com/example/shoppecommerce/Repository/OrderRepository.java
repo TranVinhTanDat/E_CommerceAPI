@@ -21,7 +21,7 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
 
     @Query("SELECT new com.example.shoppecommerce.DTO.OrderDTO(" +
             "o.id, u.username, a.addressLine1, a.addressLine2, a.phone, " +
-            "o.status, o.total, 'CASH') " + // ✅ Tránh lỗi nếu paymentMethod null
+            "o.status, o.total, 'CASH') " +
             "FROM Order o " +
             "JOIN o.user u " +
             "JOIN Address a ON a.user.id = u.id " +
@@ -39,11 +39,22 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
     List<OrderDTO> findOrdersByDate(@Param("date") Date date);
 
     @Query("SELECT SUM(o.total) FROM Order o")
-    BigDecimal sumTotalAmount();  // Tổng doanh thu
+    BigDecimal sumTotalAmount();
 
     @Query("SELECT COUNT(o) FROM Order o")
-    long count(); // Tổng số đơn hàng
+    long count();
 
     @Query("SELECT FUNCTION('MONTH', o.createdAt), SUM(o.total) FROM Order o GROUP BY FUNCTION('MONTH', o.createdAt)")
-    List<Object[]> getSalesByMonth(); // Doanh thu theo tháng
+    List<Object[]> getSalesByMonth();
+
+    long countByStatusIn(List<OrderStatus> statuses);
+
+    List<Order> findByStatusIn(List<OrderStatus> statuses);
+
+    // Bổ sung để hỗ trợ đơn hàng mới hôm nay
+    @Query("SELECT COUNT(o) FROM Order o WHERE o.status IN :statuses AND DATE(o.createdAt) = CURRENT_DATE")
+    long countNewOrdersByDate(@Param("statuses") List<OrderStatus> statuses);
+
+    @Query("SELECT o FROM Order o WHERE o.status IN :statuses AND DATE(o.createdAt) = CURRENT_DATE")
+    List<Order> findByStatusInAndDate(@Param("statuses") List<OrderStatus> statuses);
 }
