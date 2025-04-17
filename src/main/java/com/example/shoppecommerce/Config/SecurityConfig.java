@@ -41,11 +41,11 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
-                .csrf(csrf -> csrf.disable()) // Tắt CSRF
-                .cors(cors -> cors.configurationSource(corsConfigurationSource())) // Cấu hình CORS
+                .csrf(csrf -> csrf.disable())
+                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .authorizeHttpRequests(auth -> auth
                         // Các endpoint công khai
-                        .requestMatchers("/auth/**", "/login", "/oauth2/**").permitAll() // Cho phép /login và OAuth2 endpoints
+                        .requestMatchers("/", "/auth/**", "/login", "/oauth2/**").permitAll() // Thêm "/" vào đây
                         .requestMatchers("/categories/**", "/products/**").permitAll()
                         .requestMatchers("/users/**").permitAll()
                         .requestMatchers("/messages/**", "/ws/**").permitAll()
@@ -55,15 +55,14 @@ public class SecurityConfig {
                         // Tất cả các request khác cần xác thực
                         .anyRequest().authenticated()
                 )
-                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)) // API không dùng session
+                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .addFilterBefore(jwtRequestFilter, UsernamePasswordAuthenticationFilter.class)
-                // Cấu hình OAuth2 với Google
                 .oauth2Login(oauth2 -> oauth2
                         .authorizationEndpoint(authorization -> authorization
-                                .baseUri("/oauth2/authorization") // Endpoint để yêu cầu quyền từ Google
+                                .baseUri("/oauth2/authorization")
                         )
-                        .successHandler(oauth2SuccessHandler()) // Xử lý đăng nhập thành công
-                        .failureHandler(oauth2FailureHandler()) // Xử lý đăng nhập thất bại
+                        .successHandler(oauth2SuccessHandler())
+                        .failureHandler(oauth2FailureHandler())
                 );
 
         return http.build();
