@@ -45,13 +45,16 @@ public class SecurityConfig {
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .authorizeHttpRequests(auth -> auth
                         // Các endpoint công khai
-                        .requestMatchers("/", "/auth/**", "/login", "/oauth2/**").permitAll() // Thêm "/" vào đây
+                        .requestMatchers("/", "/auth/**", "/login", "/oauth2/**").permitAll()
                         .requestMatchers("/categories/**", "/products/**").permitAll()
                         .requestMatchers("/users/**").permitAll()
                         .requestMatchers("/messages/**", "/ws/**").permitAll()
                         // Các endpoint yêu cầu xác thực
                         .requestMatchers("/cart/**", "/orders/user/**", "/addresses/**", "/comments/**").authenticated()
-                        .requestMatchers("/admin/products/**", "/admin/orders/**").hasRole("ADMIN")
+                        // Các endpoint yêu cầu quyền ADMIN
+                        .requestMatchers("/admin/users/**", "/admin/products/**", "/admin/dashboard").hasRole("ADMIN")
+                        // Các endpoint cho cả ADMIN và EMPLOYEE
+                        .requestMatchers("/admin/orderList", "/admin/shipperOrderList", "/admin/chat").hasAnyRole("ADMIN", "EMPLOYEE")
                         // Tất cả các request khác cần xác thực
                         .anyRequest().authenticated()
                 )
@@ -67,7 +70,6 @@ public class SecurityConfig {
 
         return http.build();
     }
-
     @Bean
     public AuthenticationSuccessHandler oauth2SuccessHandler() {
         return (request, response, authentication) -> {
@@ -88,7 +90,7 @@ public class SecurityConfig {
     public UrlBasedCorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
         configuration.setAllowCredentials(true);
-        configuration.addAllowedOrigin("https://e-commerce-fe.vercel.app"); // Origin của frontend
+        configuration.addAllowedOrigin("https://e-commerce-fe-seven-snowy.vercel.app"); // Origin của frontend
         configuration.addAllowedOrigin("http://localhost:3000"); // Cho phép localhost khi dev
         configuration.addAllowedHeader("*");
         configuration.addAllowedMethod("*");

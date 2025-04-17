@@ -15,7 +15,6 @@ import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -31,14 +30,12 @@ public class UserService implements UserDetailsService {
 
     private static final Logger logger = LoggerFactory.getLogger(UserService.class);
 
-
-    // Cách tạo hoặc lấy người dùng từ Google
     public User getOrCreateUserFromGoogle(OAuth2AccessToken accessToken) {
         RestTemplate restTemplate = new RestTemplate();
         String userInfoUrl = "https://www.googleapis.com/oauth2/v3/userinfo?access_token=" + accessToken.getTokenValue();
 
-        logger.debug("Google API URL: " + userInfoUrl); // Ghi log URL Google API
-        logger.debug("Access Token: " + accessToken.getTokenValue()); // Ghi log token
+        logger.debug("Google API URL: " + userInfoUrl);
+        logger.debug("Access Token: " + accessToken.getTokenValue());
 
         OAuth2User googleUser = restTemplate.getForObject(userInfoUrl, OAuth2User.class);
 
@@ -50,11 +47,10 @@ public class UserService implements UserDetailsService {
         User existingUser = userRepository.findByEmail(email).orElse(null);
 
         if (existingUser != null) {
-            logger.debug("Existing user found: " + existingUser.getUsername()); // Ghi log người dùng đã có
+            logger.debug("Existing user found: " + existingUser.getUsername());
             return existingUser;
         }
 
-        // Tạo mới người dùng nếu chưa tồn tại
         User newUser = new User();
         newUser.setUsername(googleUser.getAttribute("name"));
         newUser.setEmail(email);
@@ -62,10 +58,9 @@ public class UserService implements UserDetailsService {
         newUser.setRole("USER");
 
         User savedUser = userRepository.save(newUser);
-        logger.debug("New user created: " + savedUser.getUsername()); // Ghi log người dùng mới
+        logger.debug("New user created: " + savedUser.getUsername());
         return savedUser;
     }
-
 
     public User saveUser(User user) {
         // Kiểm tra username đã tồn tại chưa
@@ -76,21 +71,43 @@ public class UserService implements UserDetailsService {
         if (userRepository.findByEmail(user.getEmail()).isPresent()) {
             throw new RuntimeException("Email already exists");
         }
+        // Kiểm tra mật khẩu có được cung cấp không
+        if (user.getPassword() == null || user.getPassword().isEmpty()) {
+            throw new RuntimeException("Password is required");
+        }
         // Đặt avatar mặc định nếu không được cung cấp
         if (user.getAvatar() == null || user.getAvatar().isEmpty()) {
             user.setAvatar("https://t4.ftcdn.net/jpg/02/15/84/43/360_F_215844325_ttX9YiIIyeaR7Ne6EaLLjMAmy4GvPC69.jpg");
         }
-        // Đặt role mặc định nếu không được cung cấp
+        // Kiểm tra và đặt role
         if (user.getRole() == null || user.getRole().isEmpty()) {
-            user.setRole("USER");  // Giá trị mặc định là "USER"
+            user.setRole("USER");
+        } else {
+            // Đảm bảo role chỉ là USER, ADMIN hoặc EMPLOYEE
+            String role = user.getRole().toUpperCase();
+            if (!role.equals("USER") && !role.equals("ADMIN") && !role.equals("EMPLOYEE")) {
+                throw new RuntimeException("Invalid role. Role must be USER, ADMIN, or EMPLOYEE");
+            }
+            user.setRole(role);
         }
-        // Mã hóa mật khẩu trước khi lưu vào cơ sở dữ liệu
+        // Mã hóa mật khẩu
         user.setPassword(passwordEncoder.encode(user.getPassword()));
         return userRepository.save(user);
     }
 
     public User updateUser(User user) {
-        // Không kiểm tra sự tồn tại, vì đây là phương thức cập nhật
+        // Nếu mật khẩu được cung cấp, mã hóa lại
+        if (user.getPassword() != null && !user.getPassword().isEmpty()) {
+            user.setPassword(passwordEncoder.encode(user.getPassword()));
+        }
+        // Kiểm tra role khi cập nhật
+        if (user.getRole() != null && !user.getRole().isEmpty()) {
+            String role = user.getRole().toUpperCase();
+            if (!role.equals("USER") && !role.equals("ADMIN") && !role.equals("EMPLOYEE")) {
+                throw new RuntimeException("Invalid role. Role must be USER, ADMIN, or EMPLOYEE");
+            }
+            user.setRole(role);
+        }
         return userRepository.save(user);
     }
 
@@ -113,22 +130,19 @@ public class UserService implements UserDetailsService {
         );
     }
 
-
-
     public User addUser(User user) {
-        return userRepository.save(user);
+        return saveUser(user);
     }
 
     public User updateUser(Long userId, User user) {
         if (userRepository.existsById(userId)) {
             user.setId(userId);
-            return userRepository.save(user);
+            return updateUser(user);
         } else {
             throw new RuntimeException("User not found");
         }
     }
 
-    // Xóa khách hàng
     public void deleteUser(Long userId) {
         if (userRepository.existsById(userId)) {
             userRepository.deleteById(userId);
@@ -144,7 +158,4 @@ public class UserService implements UserDetailsService {
     public Optional<User> getUserId(long userId) {
         return userRepository.findById(userId);
     }
-
-
-
 }
