@@ -69,7 +69,8 @@ public class SecurityConfig {
     public UrlBasedCorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
         configuration.setAllowCredentials(true);
-        configuration.addAllowedOrigin("https://e-commerce-fe.vercel.app"); // Có thể bạn đã thêm dòng này
+//        configuration.addAllowedOrigin("https://e-commerce-fe.vercel.app"); // Có thể bạn đã thêm dòng này
+        configuration.addAllowedOrigin("http://localhost:3000");
         configuration.addAllowedHeader("*");
         configuration.addAllowedMethod("*");
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
