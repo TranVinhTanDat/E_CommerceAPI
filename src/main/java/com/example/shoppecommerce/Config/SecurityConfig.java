@@ -4,17 +4,15 @@ import com.example.shoppecommerce.Service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.security.oauth2.client.oidc.userinfo.OidcUserService;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
-import org.springframework.security.web.authentication.AuthenticationSuccessHandler;
-import org.springframework.security.web.authentication.AuthenticationFailureHandler;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
@@ -45,7 +43,7 @@ public class SecurityConfig {
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .authorizeHttpRequests(auth -> auth
                         // Các endpoint công khai
-                        .requestMatchers("/", "/auth/**", "/login", "/oauth2/**").permitAll()
+                        .requestMatchers("/", "/auth/**", "/login").permitAll()
                         .requestMatchers("/categories/**", "/products/**").permitAll()
                         .requestMatchers("/users/**").permitAll()
                         .requestMatchers("/messages/**", "/ws/**").permitAll()
@@ -58,40 +56,39 @@ public class SecurityConfig {
                         // Tất cả các request khác cần xác thực
                         .anyRequest().authenticated()
                 )
+                .exceptionHandling(exception -> exception
+                        .authenticationEntryPoint((request, response, authException) -> {
+                            response.setContentType("application/json");
+                            response.setStatus(HttpStatus.UNAUTHORIZED.value());
+                            response.getWriter().write("{\"error\": \"Unauthorized access\"}");
+                        })
+                )
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .addFilterBefore(jwtRequestFilter, UsernamePasswordAuthenticationFilter.class)
                 .oauth2Login(oauth2 -> oauth2
                         .authorizationEndpoint(authorization -> authorization
                                 .baseUri("/oauth2/authorization")
                         )
-                        .successHandler(oauth2SuccessHandler())
-                        .failureHandler(oauth2FailureHandler())
+                        .successHandler((request, response, authentication) -> {
+                            response.setContentType("application/json");
+                            response.getWriter().write("{\"message\": \"OAuth2 login successful\"}");
+                        })
+                        .failureHandler((request, response, exception) -> {
+                            response.setContentType("application/json");
+                            response.setStatus(HttpStatus.UNAUTHORIZED.value());
+                            response.getWriter().write("{\"error\": \"OAuth2 login failed: " + exception.getMessage() + "\"}");
+                        })
                 );
 
         return http.build();
-    }
-    @Bean
-    public AuthenticationSuccessHandler oauth2SuccessHandler() {
-        return (request, response, authentication) -> {
-            // Xử lý sau khi đăng nhập thành công: redirect hoặc trả về JSON
-            response.sendRedirect("/auth/oauth2/success");
-        };
-    }
-
-    @Bean
-    public AuthenticationFailureHandler oauth2FailureHandler() {
-        return (request, response, exception) -> {
-            // Xử lý khi đăng nhập thất bại
-            response.sendRedirect("/auth/oauth2/failure");
-        };
     }
 
     @Bean
     public UrlBasedCorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
         configuration.setAllowCredentials(true);
-        configuration.addAllowedOrigin("https://e-commerce-fe-seven-snowy.vercel.app"); // Origin của frontend
-        configuration.addAllowedOrigin("http://localhost:3000"); // Cho phép localhost khi dev
+        configuration.addAllowedOrigin("https://e-commerce-fe-seven-snowy.vercel.app");
+        configuration.addAllowedOrigin("http://localhost:3000");
         configuration.addAllowedHeader("*");
         configuration.addAllowedMethod("*");
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();

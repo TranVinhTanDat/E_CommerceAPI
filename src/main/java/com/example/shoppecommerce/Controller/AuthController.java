@@ -4,22 +4,21 @@ import com.example.shoppecommerce.Entity.TokenModel;
 import com.example.shoppecommerce.Entity.User;
 import com.example.shoppecommerce.Repository.UserRepository;
 import com.example.shoppecommerce.Service.EmailService;
-import com.example.shoppecommerce.Service.GoogleService;
 import com.example.shoppecommerce.Service.JwtService;
 import com.example.shoppecommerce.Service.UserService;
 import jakarta.mail.MessagingException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.security.oauth2.core.OAuth2AccessToken;
 import org.springframework.web.bind.annotation.*;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.web.client.RestTemplate;
 
 import java.util.HashMap;
@@ -53,12 +52,7 @@ public class AuthController {
     private EmailService emailService;
 
     @Autowired
-    private UserRepository userRepository; // THÊM DÒNG NÀY
-
-    @Autowired
-    private GoogleService googleService;
-
-
+    private UserRepository userRepository;
 
     private final Map<String, String> otpStorage = new HashMap<>();
 
@@ -69,7 +63,6 @@ public class AuthController {
         }
 
         try {
-            // Gửi token lên Google để xác thực
             RestTemplate restTemplate = new RestTemplate();
             String googleValidationUrl = "https://oauth2.googleapis.com/tokeninfo?id_token=" + token.replace("Bearer ", "");
             Map<String, Object> googleUserData = restTemplate.getForObject(googleValidationUrl, Map.class);
@@ -78,40 +71,29 @@ public class AuthController {
                 return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Invalid Google token");
             }
 
-            // 🛠 Lấy thông tin từ Google
             String email = googleUserData.get("email").toString();
             String name = googleUserData.get("name").toString();
             String avatar = googleUserData.get("picture").toString();
 
-            // 🔍 Kiểm tra xem người dùng đã tồn tại chưa
             Optional<User> existingUser = userRepository.findByEmail(email);
             User user;
             if (existingUser.isPresent()) {
                 user = existingUser.get();
             } else {
-                // Nếu user chưa tồn tại, tạo mới
                 user = new User();
                 user.setUsername(name);
                 user.setEmail(email);
                 user.setAvatar(avatar);
                 user.setRole("USER");
-
-                // ✅ Thêm mật khẩu mặc định
                 user.setPassword(passwordEncoder.encode("google_auth_default_password"));
-
                 userRepository.save(user);
             }
 
-            // ✅ **Tạo JWT mới để dùng trong hệ thống của bạn**
             UserDetails userDetails = userService.loadUserByUsername(user.getUsername());
             String jwtToken = jwtService.generateToken(userDetails, user.getId(), user.getRole());
             String refreshToken = jwtService.generateRefreshToken(userDetails);
 
-            System.out.println("✅ Generated JWT Token: " + jwtToken);
-
-
             return ResponseEntity.ok(new TokenModel(jwtToken, refreshToken, jwtService.getExpiresIn(), user.getRole(), user.getId()));
-
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Google login failed: " + e.getMessage());
         }
@@ -129,18 +111,25 @@ public class AuthController {
     }
 
     @PostMapping("/login")
-    public TokenModel login(@RequestBody User user) {
+    public ResponseEntity<?> login(@RequestBody User user) {
         logger.info("Attempting to authenticate user: {}", user.getUsername());
-        authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(user.getUsername(), user.getPassword())
-        );
-        final UserDetails userDetails = userDetailsService.loadUserByUsername(user.getUsername());
-        final User authenticatedUser = userService.findByUsername(user.getUsername());
-        final String jwt = jwtService.generateToken(userDetails, authenticatedUser.getId(), authenticatedUser.getRole());
-        final String refreshToken = jwtService.generateRefreshToken(userDetails);
-        final Long expiresIn = jwtService.getExpiresIn();
-//        logger.info("User authenticated successfully: {} (ID: {})", user.getUsername(), authenticatedUser.getId());
-        return new TokenModel(jwt, refreshToken, expiresIn, authenticatedUser.getRole(),authenticatedUser.getId());
+        try {
+            authenticationManager.authenticate(
+                    new UsernamePasswordAuthenticationToken(user.getUsername(), user.getPassword())
+            );
+            final UserDetails userDetails = userDetailsService.loadUserByUsername(user.getUsername());
+            final User authenticatedUser = userService.findByUsername(user.getUsername());
+            final String jwt = jwtService.generateToken(userDetails, authenticatedUser.getId(), authenticatedUser.getRole());
+            final String refreshToken = jwtService.generateRefreshToken(userDetails);
+            final Long expiresIn = jwtService.getExpiresIn();
+            return ResponseEntity.ok(new TokenModel(jwt, refreshToken, expiresIn, authenticatedUser.getRole(), authenticatedUser.getId()));
+        } catch (BadCredentialsException e) {
+            logger.error("Invalid credentials for user: {}", user.getUsername());
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Invalid username or password");
+        } catch (Exception e) {
+            logger.error("Error during authentication for user: {}", user.getUsername(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("An error occurred during login");
+        }
     }
 
     @GetMapping("/user")
@@ -198,10 +187,7 @@ public class AuthController {
     public ResponseEntity<String> sendOtp(@RequestBody Map<String, String> request) {
         String email = request.get("email");
 
-        // Generate 6-digit OTP
         String otp = String.format("%06d", new Random().nextInt(999999));
-
-        // Store OTP in a HashMap (should use Redis or DB in production)
         otpStorage.put(email, otp);
 
         try {
@@ -216,9 +202,7 @@ public class AuthController {
     public ResponseEntity<String> verifyOtp(@RequestBody Map<String, String> request) {
         String enteredOtp = request.get("otp");
 
-        // Kiểm tra OTP trong bộ nhớ
         if (otpStorage.containsValue(enteredOtp)) {
-            // Xóa OTP sau khi xác minh thành công
             otpStorage.entrySet().removeIf(entry -> entry.getValue().equals(enteredOtp));
             return ResponseEntity.ok("OTP verified successfully.");
         } else {
@@ -232,12 +216,10 @@ public class AuthController {
         String newPassword = request.get("newPassword");
         String confirmNewPassword = request.get("confirmNewPassword");
 
-        // Kiểm tra mật khẩu mới và xác nhận mật khẩu có khớp không
         if (!newPassword.equals(confirmNewPassword)) {
             return ResponseEntity.badRequest().body("Passwords do not match.");
         }
 
-        // Kiểm tra OTP trong bộ nhớ
         Optional<String> emailOptional = otpStorage.entrySet().stream()
                 .filter(entry -> entry.getValue().equals(otp))
                 .map(Map.Entry::getKey)
