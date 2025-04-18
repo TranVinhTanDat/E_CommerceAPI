@@ -4,7 +4,8 @@ import jakarta.persistence.*;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import java.math.BigDecimal;
-import java.util.Date;
+
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
 @Data
 @NoArgsConstructor
@@ -18,11 +19,10 @@ public class Product {
     private String description;
     private BigDecimal price;
     private String image;
-    private int quantity; // Thêm dòng này
+    private int quantity;
 
     @ManyToOne
     @JoinColumn(name = "category_id", nullable = false)
+    @JsonIgnoreProperties({"subCategories", "parent"}) // Bỏ qua subCategories và parent
     private Category category;
-
-    // Các mối quan hệ và phương thức khác
 }

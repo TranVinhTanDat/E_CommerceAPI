@@ -1,6 +1,7 @@
 package com.example.shoppecommerce.Entity;
 
 import com.fasterxml.jackson.annotation.JsonBackReference;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
 
@@ -23,11 +24,10 @@ public class Category {
     private Category parent;
 
     @OneToMany(mappedBy = "parent")
-    @JsonManagedReference
+    @JsonIgnore // Thay thế @JsonManagedReference
     private List<Category> subCategories;
 
     // Getters and setters
-
     public Long getId() {
         return id;
     }
