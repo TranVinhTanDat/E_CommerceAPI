@@ -134,13 +134,20 @@ public class UserService implements UserDetailsService {
         return saveUser(user);
     }
 
-    public User updateUser(Long userId, User user) {
-        if (userRepository.existsById(userId)) {
-            user.setId(userId);
-            return updateUser(user);
-        } else {
-            throw new RuntimeException("User not found");
-        }
+    public User updateUser(Long id, User updatedUser) {
+        User existingUser = userRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("User not found with id: " + id));
+
+        // Cập nhật các trường được gửi từ frontend
+        existingUser.setUsername(updatedUser.getUsername());
+        existingUser.setEmail(updatedUser.getEmail());
+        existingUser.setAvatar(updatedUser.getAvatar());
+        existingUser.setRole(updatedUser.getRole());
+
+        // Giữ nguyên password, không cập nhật nếu không được gửi
+        // Nếu bạn muốn cho phép cập nhật password qua API này, cần thêm logic riêng
+
+        return userRepository.save(existingUser);
     }
 
     public void deleteUser(Long userId) {

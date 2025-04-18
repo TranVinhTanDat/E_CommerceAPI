@@ -41,7 +41,7 @@ public class OrderService {
     private EmailService emailService;
 
     @PersistenceContext
-    private EntityManager entityManager; // Thêm EntityManager để sử dụng flush và clear
+    private EntityManager entityManager;
 
     public List<OrderDTO> getAllOrderDTOs() {
         return orderRepository.findAllOrderDTOs();
@@ -60,7 +60,7 @@ public class OrderService {
             throw new RuntimeException("No items in the cart");
         }
 
-        logger.info("📦 Giỏ hàng (cart_id={}) có {} mặt hàng: {}", cart.getId(), cartItems.size(), cartItems);
+        logger.info("📦 Giỏ hàng (cart_id={}) có {} mặt hàng", cart.getId(), cartItems.size());
 
         Order order = new Order();
         order.setUser(user);
@@ -98,14 +98,20 @@ public class OrderService {
 
         // Xóa giỏ hàng
         logger.info("🗑️ Đang xóa {} mặt hàng trong giỏ hàng (cart_id={})!", cartItems.size(), cart.getId());
-        cartItemRepository.deleteAll(cartItems);
-        entityManager.flush(); // Đồng bộ thay đổi với cơ sở dữ liệu
-        entityManager.clear(); // Xóa cache để truy vấn mới
+        cartItemRepository.deleteByCartId(cart.getId());
+        entityManager.flush();
+        entityManager.clear();
 
-        // Kiểm tra lại giỏ hàng để đảm bảo đã xóa hết
+        // Kiểm tra lại giỏ hàng
         List<CartItem> remainingItems = cartItemRepository.findByCartId(cart.getId());
         if (!remainingItems.isEmpty()) {
-            logger.error("❌ Vẫn còn {} mặt hàng trong giỏ hàng (cart_id={}) sau khi xóa: {}", remainingItems.size(), cart.getId(), remainingItems);
+            logger.error("❌ Vẫn còn {} mặt hàng trong giỏ hàng (cart_id={}) sau khi xóa", remainingItems.size(), cart.getId());
+            for (CartItem item : remainingItems) {
+                logger.error("Mặt hàng còn lại: id={}, productId={}, quantity={}",
+                        item.getId(),
+                        item.getProduct() != null ? item.getProduct().getId() : null,
+                        item.getQuantity());
+            }
             throw new RuntimeException("Failed to clear cart items");
         }
 
@@ -135,11 +141,11 @@ public class OrderService {
         for (Order order : deliveredOrders) {
             for (OrderItem item : order.getItems()) {
                 if (item.getProduct().getId().equals(productId)) {
-                    return true; // ✅ User đã mua sản phẩm và đã giao hàng
+                    return true;
                 }
             }
         }
-        return false; // ❌ User chưa mua sản phẩm hoặc chưa nhận hàng
+        return false;
     }
 
     public List<Order> getUserOrders(Long userId) {
@@ -148,7 +154,7 @@ public class OrderService {
 
     public Order getOrderDetails(Long orderId) {
         Order order = orderRepository.findById(orderId).orElseThrow(() -> new RuntimeException("Order not found"));
-        order.getItems().size(); // Ensure items are loaded
+        order.getItems().size();
         return order;
     }
 
@@ -211,11 +217,10 @@ public class OrderService {
             throw new RuntimeException("User not found");
         }
         order.setUser(user);
-        order.setStatus(OrderStatus.TEMPORARY);  // Set status to Temporary
+        order.setStatus(OrderStatus.TEMPORARY);
 
         order.setTotal(BigDecimal.ZERO);
 
-        // Save the order first to generate an ID
         orderRepository.save(order);
 
         BigDecimal total = BigDecimal.ZERO;
@@ -241,7 +246,7 @@ public class OrderService {
         }
 
         order.setTotal(total);
-        orderRepository.save(order); // Update the order with the total amount
+        orderRepository.save(order);
         logger.info("Temporary order placed successfully for user ID: {} with total: {}", userId, total);
 
         return order;
@@ -251,7 +256,7 @@ public class OrderService {
     public void finalizeOrder(Long orderId) {
         Order order = orderRepository.findById(orderId).orElseThrow(() -> new RuntimeException("Order not found"));
         if ("Temporary".equals(order.getStatus())) {
-            order.setStatus(OrderStatus.PENDING); // Update status to Pending
+            order.setStatus(OrderStatus.PENDING);
             orderRepository.save(order);
             logger.info("Order finalized and set to pending for order ID: {}", orderId);
         } else {
@@ -294,29 +299,24 @@ public class OrderService {
         return orders;
     }
 
-    // Thống kê tổng số đơn hàng trong tháng
     public long getTotalOrders() {
         return orderRepository.count();
     }
 
-    // Thống kê tổng doanh thu trong tháng
     public BigDecimal getTotalRevenue() {
-        return orderRepository.sumTotalAmount(); // Giả sử bạn có phương thức sumTotalAmount() trong OrderRepository
+        return orderRepository.sumTotalAmount();
     }
 
-    // Thống kê số người dùng mới trong tháng
     public long getNewUsersInMonth() {
-        return userRepository.countNewUsersInMonth(); // Giả sử bạn có phương thức countNewUsersInMonth() trong UserRepository
+        return userRepository.countNewUsersInMonth();
     }
 
-    // Thống kê tổng số sản phẩm
     public long getTotalProducts() {
         return productRepository.count();
     }
 
-    // Thống kê doanh thu theo tháng
     public List<Object[]> getSalesByMonth() {
-        return orderRepository.getSalesByMonth(); // Giả sử bạn có một truy vấn cho việc này
+        return orderRepository.getSalesByMonth();
     }
 
     public long getNewOrdersCount() {
@@ -326,7 +326,7 @@ public class OrderService {
     public List<Order> getNewOrders() {
         List<Order> newOrders = orderRepository.findByStatusInAndDate(List.of(OrderStatus.PENDING, OrderStatus.PROCESSING));
         newOrders.forEach(order -> {
-            order.setUser(null); // Không gửi thông tin user về frontend
+            order.setUser(null);
             order.getItems().forEach(item -> {
                 item.setOrder(null);
                 item.getProduct().setCategory(null);
@@ -337,7 +337,7 @@ public class OrderService {
 
     public OrderDetailsDTO getOrderDetailsAsDTO(Long orderId) {
         Order order = orderRepository.findById(orderId).orElseThrow(() -> new RuntimeException("Order not found"));
-        order.getItems().size(); // Đảm bảo items được tải
+        order.getItems().size();
 
         OrderDetailsDTO orderDetailsDTO = new OrderDetailsDTO();
         orderDetailsDTO.setId(order.getId());
