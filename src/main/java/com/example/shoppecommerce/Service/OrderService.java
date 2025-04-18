@@ -87,8 +87,17 @@ public class OrderService {
         order.setTotal(total);
         orderRepository.save(order);
 
+        // Xóa giỏ hàng
+        logger.info("🗑️ Đang xóa {} mặt hàng trong giỏ hàng!", cartItems.size());
         cartItemRepository.deleteAll(cartItems);
-        logger.info("🗑️ Giỏ hàng đã được xóa sau khi đặt hàng!");
+
+        // Kiểm tra xem giỏ hàng có thực sự rỗng không
+        List<CartItem> remainingItems = cartItemRepository.findByCartId(cart.getId());
+        if (!remainingItems.isEmpty()) {
+            logger.error("❌ Vẫn còn {} mặt hàng trong giỏ hàng sau khi xóa!", remainingItems.size());
+            throw new RuntimeException("Failed to clear cart items");
+        }
+        logger.info("✅ Giỏ hàng đã được xóa hoàn toàn!");
 
         try {
             emailService.sendOrderConfirmationEmail(user.getEmail(), order.getId().toString(), order.getTotal());
@@ -99,7 +108,6 @@ public class OrderService {
 
         return order;
     }
-
 
     public List<Order> getUserOrdersByStatus(Long userId, String status) {
         try {
@@ -125,11 +133,7 @@ public class OrderService {
 
 
     public List<Order> getUserOrders(Long userId) {
-        List<Order> orders = orderRepository.findByUserId(userId);
-        for (Order order : orders) {
-            order.getItems().size(); // Ensure items are loaded
-        }
-        return orders;
+        return orderRepository.findByUserId(userId);
     }
 
 
