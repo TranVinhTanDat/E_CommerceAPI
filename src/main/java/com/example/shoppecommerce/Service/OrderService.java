@@ -88,8 +88,8 @@ public class OrderService {
         orderRepository.save(order);
 
         // Xóa giỏ hàng
-        logger.info("🗑️ Đang xóa {} mặt hàng trong giỏ hàng!", cartItems.size());
         cartItemRepository.deleteAll(cartItems);
+        logger.info("🗑️ Đã xóa {} mặt hàng trong giỏ hàng!", cartItems.size());
 
         // Kiểm tra xem giỏ hàng có thực sự rỗng không
         List<CartItem> remainingItems = cartItemRepository.findByCartId(cart.getId());
@@ -97,7 +97,6 @@ public class OrderService {
             logger.error("❌ Vẫn còn {} mặt hàng trong giỏ hàng sau khi xóa!", remainingItems.size());
             throw new RuntimeException("Failed to clear cart items");
         }
-        logger.info("✅ Giỏ hàng đã được xóa hoàn toàn!");
 
         try {
             emailService.sendOrderConfirmationEmail(user.getEmail(), order.getId().toString(), order.getTotal());
