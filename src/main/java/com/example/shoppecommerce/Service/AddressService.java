@@ -7,6 +7,7 @@ import com.example.shoppecommerce.Repository.AddressRepository;
 import com.example.shoppecommerce.Repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Optional;
@@ -27,6 +28,7 @@ public class AddressService {
         return addressRepository.save(address);
     }
 
+    @Transactional(readOnly = true)
     public List<AddressDTO> getAllAddressesByUserId(Long userId) {
         List<Address> addresses = addressRepository.findByUserId(userId);
         return addresses.stream().map(address -> new AddressDTO(
