@@ -1,5 +1,6 @@
 package com.example.shoppecommerce.Service;
 
+import com.example.shoppecommerce.DTO.AddressDTO;
 import com.example.shoppecommerce.Entity.Address;
 import com.example.shoppecommerce.Entity.User;
 import com.example.shoppecommerce.Repository.AddressRepository;
@@ -9,6 +10,7 @@ import org.springframework.stereotype.Service;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Service
 public class AddressService {
@@ -25,8 +27,19 @@ public class AddressService {
         return addressRepository.save(address);
     }
 
-    public List<Address> getAllAddressesByUserId(Long userId) {
-        return addressRepository.findByUserId(userId);
+    public List<AddressDTO> getAllAddressesByUserId(Long userId) {
+        List<Address> addresses = addressRepository.findByUserId(userId);
+        return addresses.stream().map(address -> new AddressDTO(
+                address.getId(),
+                address.getAddressLine1(),
+                address.getAddressLine2(),
+                address.getCity(),
+                address.getState(),
+                address.getPostalCode(),
+                address.getCountry(),
+                address.getPhone(),
+                address.getEmail()
+        )).collect(Collectors.toList());
     }
 
     public Address updateAddress(Long userId, Long addressId, Address addressDetails) {

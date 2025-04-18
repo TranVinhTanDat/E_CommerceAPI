@@ -1,5 +1,6 @@
 package com.example.shoppecommerce.Controller;
 
+import com.example.shoppecommerce.DTO.AddressDTO;
 import com.example.shoppecommerce.Entity.Address;
 import com.example.shoppecommerce.Service.AddressService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -28,11 +29,11 @@ public class AddressController {
     }
 
     @GetMapping("/view")
-    public ResponseEntity<List<Address>> getAllAddressesByUserId() {
+    public ResponseEntity<List<AddressDTO>> getAllAddressesByUserId() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        User user = (User) authentication.getPrincipal();
-        Long userId = addressService.findUserIdByUsername(user.getUsername());
-        List<Address> addresses = addressService.getAllAddressesByUserId(userId);
+        String username = authentication.getName();
+        Long userId = addressService.findUserIdByUsername(username);
+        List<AddressDTO> addresses = addressService.getAllAddressesByUserId(userId);
         return ResponseEntity.ok(addresses);
     }
 
