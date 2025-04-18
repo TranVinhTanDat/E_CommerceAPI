@@ -6,6 +6,8 @@ import com.example.shoppecommerce.DTO.OrderItemDTO;
 import com.example.shoppecommerce.Entity.*;
 import com.example.shoppecommerce.Repository.*;
 import jakarta.mail.MessagingException;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -13,9 +15,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.math.BigDecimal;
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -40,6 +40,9 @@ public class OrderService {
     @Autowired
     private EmailService emailService;
 
+    @PersistenceContext
+    private EntityManager entityManager; // Thêm EntityManager để sử dụng flush và clear
+
     public List<OrderDTO> getAllOrderDTOs() {
         return orderRepository.findAllOrderDTOs();
     }
@@ -52,7 +55,12 @@ public class OrderService {
         Cart cart = cartRepository.findByUserId(userId).orElseThrow(() -> new RuntimeException("Cart not found"));
 
         List<CartItem> cartItems = cartItemRepository.findByCartId(cart.getId());
-        if (cartItems.isEmpty()) throw new RuntimeException("No items in the cart");
+        if (cartItems.isEmpty()) {
+            logger.error("❌ Giỏ hàng trống, không thể đặt hàng!");
+            throw new RuntimeException("No items in the cart");
+        }
+
+        logger.info("📦 Giỏ hàng (cart_id={}) có {} mặt hàng: {}", cart.getId(), cartItems.size(), cartItems);
 
         Order order = new Order();
         order.setUser(user);
@@ -67,6 +75,7 @@ public class OrderService {
         for (CartItem cartItem : cartItems) {
             Product product = cartItem.getProduct();
             if (product.getQuantity() < cartItem.getQuantity()) {
+                logger.error("❌ Không đủ hàng cho sản phẩm: {}", product.getName());
                 throw new RuntimeException("Not enough stock for product: " + product.getName());
             }
 
@@ -88,15 +97,19 @@ public class OrderService {
         orderRepository.save(order);
 
         // Xóa giỏ hàng
+        logger.info("🗑️ Đang xóa {} mặt hàng trong giỏ hàng (cart_id={})!", cartItems.size(), cart.getId());
         cartItemRepository.deleteAll(cartItems);
-        logger.info("🗑️ Đã xóa {} mặt hàng trong giỏ hàng!", cartItems.size());
+        entityManager.flush(); // Đồng bộ thay đổi với cơ sở dữ liệu
+        entityManager.clear(); // Xóa cache để truy vấn mới
 
-        // Kiểm tra xem giỏ hàng có thực sự rỗng không
+        // Kiểm tra lại giỏ hàng để đảm bảo đã xóa hết
         List<CartItem> remainingItems = cartItemRepository.findByCartId(cart.getId());
         if (!remainingItems.isEmpty()) {
-            logger.error("❌ Vẫn còn {} mặt hàng trong giỏ hàng sau khi xóa!", remainingItems.size());
+            logger.error("❌ Vẫn còn {} mặt hàng trong giỏ hàng (cart_id={}) sau khi xóa: {}", remainingItems.size(), cart.getId(), remainingItems);
             throw new RuntimeException("Failed to clear cart items");
         }
+
+        logger.info("✅ Đã xóa toàn bộ giỏ hàng (cart_id={}) thành công!", cart.getId());
 
         try {
             emailService.sendOrderConfirmationEmail(user.getEmail(), order.getId().toString(), order.getTotal());
@@ -117,7 +130,6 @@ public class OrderService {
         }
     }
 
-
     public boolean hasUserPurchasedProduct(Long userId, Long productId) {
         List<Order> deliveredOrders = orderRepository.findByUserIdAndStatus(userId, OrderStatus.DELIVERED);
         for (Order order : deliveredOrders) {
@@ -130,11 +142,9 @@ public class OrderService {
         return false; // ❌ User chưa mua sản phẩm hoặc chưa nhận hàng
     }
 
-
     public List<Order> getUserOrders(Long userId) {
         return orderRepository.findByUserId(userId);
     }
-
 
     public Order getOrderDetails(Long orderId) {
         Order order = orderRepository.findById(orderId).orElseThrow(() -> new RuntimeException("Order not found"));
@@ -177,7 +187,6 @@ public class OrderService {
             throw new RuntimeException("Order is not in PENDING state, cannot confirm payment.");
         }
     }
-
 
     @Transactional
     public Order placeTemporaryOrder(Long userId) {
@@ -238,7 +247,6 @@ public class OrderService {
         return order;
     }
 
-
     @Transactional
     public void finalizeOrder(Long orderId) {
         Order order = orderRepository.findById(orderId).orElseThrow(() -> new RuntimeException("Order not found"));
@@ -251,8 +259,6 @@ public class OrderService {
             throw new RuntimeException("Order status is not temporary");
         }
     }
-
-
 
     @Transactional
     public void updateOrderStatus(Long orderId, OrderStatus newStatus) {
@@ -278,7 +284,6 @@ public class OrderService {
         }
     }
 
-
     public List<OrderDTO> getOrdersByDate(java.sql.Date date) {
         List<OrderDTO> orders = orderRepository.findOrdersByDate(date);
         if (orders.isEmpty()) {
@@ -288,8 +293,6 @@ public class OrderService {
         }
         return orders;
     }
-
-
 
     // Thống kê tổng số đơn hàng trong tháng
     public long getTotalOrders() {
