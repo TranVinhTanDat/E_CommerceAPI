@@ -115,6 +115,11 @@ public class UserService implements UserDetailsService {
         return userRepository.findByUsername(username).orElse(null);
     }
 
+    // Phương thức mới để kiểm tra email trùng lặp
+    public Optional<User> findByEmail(String email) {
+        return userRepository.findByEmail(email);
+    }
+
     @Override
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
         User user = userRepository.findByUsername(username)
@@ -138,14 +143,40 @@ public class UserService implements UserDetailsService {
         User existingUser = userRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("User not found with id: " + id));
 
-        // Cập nhật các trường được gửi từ frontend
-        existingUser.setUsername(updatedUser.getUsername());
-        existingUser.setEmail(updatedUser.getEmail());
-        existingUser.setAvatar(updatedUser.getAvatar());
-        existingUser.setRole(updatedUser.getRole());
+        // Kiểm tra username trùng lặp (trừ chính user hiện tại)
+        if (updatedUser.getUsername() != null && !updatedUser.getUsername().equals(existingUser.getUsername())) {
+            if (userRepository.findByUsername(updatedUser.getUsername()).isPresent()) {
+                throw new RuntimeException("Username already exists");
+            }
+            existingUser.setUsername(updatedUser.getUsername());
+        }
 
-        // Giữ nguyên password, không cập nhật nếu không được gửi
-        // Nếu bạn muốn cho phép cập nhật password qua API này, cần thêm logic riêng
+        // Kiểm tra email trùng lặp (trừ chính user hiện tại)
+        if (updatedUser.getEmail() != null && !updatedUser.getEmail().equals(existingUser.getEmail())) {
+            if (userRepository.findByEmail(updatedUser.getEmail()).isPresent()) {
+                throw new RuntimeException("Email already exists");
+            }
+            existingUser.setEmail(updatedUser.getEmail());
+        }
+
+        // Cập nhật avatar nếu được cung cấp
+        if (updatedUser.getAvatar() != null) {
+            existingUser.setAvatar(updatedUser.getAvatar());
+        }
+
+        // Cập nhật role nếu được cung cấp
+        if (updatedUser.getRole() != null) {
+            String role = updatedUser.getRole().toUpperCase();
+            if (!role.equals("USER") && !role.equals("ADMIN") && !role.equals("EMPLOYEE")) {
+                throw new RuntimeException("Invalid role. Role must be USER, ADMIN, or EMPLOYEE");
+            }
+            existingUser.setRole(role);
+        }
+
+        // Cập nhật mật khẩu nếu được cung cấp
+        if (updatedUser.getPassword() != null && !updatedUser.getPassword().isEmpty()) {
+            existingUser.setPassword(passwordEncoder.encode(updatedUser.getPassword()));
+        }
 
         return userRepository.save(existingUser);
     }

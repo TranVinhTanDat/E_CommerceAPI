@@ -45,14 +45,12 @@ public class SecurityConfig {
                         // Các endpoint công khai
                         .requestMatchers("/", "/auth/**", "/login").permitAll()
                         .requestMatchers("/categories/**", "/products/**").permitAll()
-                        .requestMatchers("/users/**").permitAll()
                         .requestMatchers("/messages/**", "/ws/**").permitAll()
-                        // Các endpoint yêu cầu xác thực
+                        // Yêu cầu xác thực
+                        .requestMatchers("/users/current", "/users/edit-user/**").authenticated()
                         .requestMatchers("/cart/**", "/orders/user/**", "/addresses/**", "/comments/**").authenticated()
-                        // Các endpoint yêu cầu quyền ADMIN
-                        .requestMatchers("/admin/users/**", "/admin/products/**", "/admin/dashboard").hasRole("ADMIN")
-                        // Các endpoint cho cả ADMIN và EMPLOYEE
-                        .requestMatchers("/admin/orderList", "/admin/shipperOrderList", "/admin/chat").hasAnyRole("ADMIN", "EMPLOYEE")
+                        // Yêu cầu quyền ADMIN
+                        .requestMatchers("/admin/**", "/users/**").hasRole("ADMIN")
                         // Tất cả các request khác cần xác thực
                         .anyRequest().authenticated()
                 )

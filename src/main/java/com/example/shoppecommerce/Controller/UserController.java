@@ -1,88 +1,110 @@
 package com.example.shoppecommerce.Controller;
 
 import com.example.shoppecommerce.Entity.User;
-import com.example.shoppecommerce.Service.JwtService;
 import com.example.shoppecommerce.Service.UserService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 
 @RestController
 @RequestMapping("/users")
 public class UserController {
+
+    private static final Logger logger = LoggerFactory.getLogger(UserController.class);
+
     @Autowired
     private UserService userService;
 
-    @Autowired
-    private JwtService jwtService;
     @PostMapping("/add-user")
     public ResponseEntity<User> addUser(@RequestBody User user) {
+        logger.info("Adding new user: {}", user.getUsername());
         User createdUser = userService.addUser(user);
+        logger.info("User added successfully: {}", createdUser.getId());
         return ResponseEntity.status(HttpStatus.CREATED).body(createdUser);
     }
 
     @PutMapping("/edit-user/{id}")
-    public ResponseEntity<?> editUser(
-            @PathVariable Long id,
-            @RequestBody User updatedUser,
-            @RequestHeader("Authorization") String token) {
+    public ResponseEntity<User> editUser(@PathVariable long id, @RequestBody User user) {
+        logger.info("Received request to update user with ID: {}", id);
         try {
-            // Lấy username từ token
-            String username = jwtService.extractUsername(token.substring(7));
-            User existingUser = userService.findByUsername(username);
-            if (existingUser == null || !existingUser.getId().equals(id)) {
-                return ResponseEntity.badRequest().body("User not found or unauthorized");
+            String currentUsername = SecurityContextHolder.getContext().getAuthentication().getName();
+            logger.info("Authenticated user: {}", currentUsername);
+            User currentUser = userService.findByUsername(currentUsername);
+
+            if (currentUser == null) {
+                logger.error("Current user not found for username: {}", currentUsername);
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).body(null);
             }
 
-            // Cập nhật thông tin người dùng
-            existingUser.setUsername(updatedUser.getUsername());
-            existingUser.setEmail(updatedUser.getEmail());
-            existingUser.setAvatar(updatedUser.getAvatar());
-            existingUser.setRole(updatedUser.getRole());
-            userService.updateUser(existingUser);
-
-            // Nếu username thay đổi, tạo token mới
-            Map<String, Object> response = new HashMap<>();
-            response.put("message", "User updated successfully");
-            if (!username.equals(updatedUser.getUsername())) {
-                UserDetails userDetails = userService.loadUserByUsername(updatedUser.getUsername());
-                String newToken = jwtService.generateToken(userDetails, existingUser.getId(), existingUser.getRole());
-                response.put("token", newToken);
+            logger.info("Current user ID: {}, Role: {}", currentUser.getId(), currentUser.getRole());
+            if (!currentUser.getId().equals(id) && !currentUser.getRole().equals("ADMIN")) {
+                logger.warn("User {} does not have permission to update user ID: {}", currentUsername, id);
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).body(null);
             }
 
-            return ResponseEntity.ok(response);
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
+            User updatedUser = userService.updateUser(id, user);
+            logger.info("User updated successfully: {}", updatedUser.getId());
+            return ResponseEntity.ok(updatedUser);
+        } catch (RuntimeException e) {
+            logger.error("Error updating user ID: {}. Error: {}", id, e.getMessage());
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(null);
         }
+    }
+
+    @GetMapping("/current")
+    public ResponseEntity<User> getCurrentUser() {
+        logger.info("Fetching current user");
+        String currentUsername = SecurityContextHolder.getContext().getAuthentication().getName();
+        logger.info("Authenticated user: {}", currentUsername);
+
+        User currentUser = userService.findByUsername(currentUsername);
+        if (currentUser == null) {
+            logger.error("Current user not found for username: {}", currentUsername);
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(null);
+        }
+
+        logger.info("Current user found: {}", currentUser.getUsername());
+        return ResponseEntity.ok(currentUser);
     }
 
     @DeleteMapping("/delete-user/{id}")
     public ResponseEntity<String> deleteUser(@PathVariable long id) {
+        logger.info("Deleting user with ID: {}", id);
         try {
             userService.deleteUser(id);
+            logger.info("User deleted successfully: {}", id);
             return ResponseEntity.status(HttpStatus.NO_CONTENT).body("Delete User Success");
         } catch (RuntimeException e) {
+            logger.error("Error deleting user ID: {}. Error: {}", id, e.getMessage());
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(null);
         }
     }
 
     @GetMapping("/all")
     public ResponseEntity<List<User>> getAllUsers() {
+        logger.info("Fetching all users");
         List<User> users = userService.getAllUsers();
+        logger.info("Fetched {} users", users.size());
         return ResponseEntity.ok(users);
     }
 
     @GetMapping("/id")
-    public ResponseEntity<User> findUserById(@PathVariable long id) {
+    public ResponseEntity<User> findUserById(@RequestParam long id) {
+        logger.info("Fetching user with ID: {}", id);
         Optional<User> user = userService.getUserId(id);
-        return user.map(ResponseEntity::ok).orElseGet(() -> ResponseEntity.status(HttpStatus.NOT_FOUND).body(null));
+        if (user.isPresent()) {
+            logger.info("User found: {}", user.get().getUsername());
+            return ResponseEntity.ok(user.get());
+        } else {
+            logger.warn("User not found with ID: {}", id);
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(null);
+        }
     }
 }
