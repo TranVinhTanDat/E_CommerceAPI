@@ -73,10 +73,13 @@ public class OrderController {
 
     @GetMapping("/details/{orderId}")
     public ResponseEntity<OrderDetailsDTO> getOrderDetails(@PathVariable Long orderId) {
+        System.out.println("Received request for order details: " + orderId);
         try {
             OrderDetailsDTO orderDetails = orderService.getOrderDetailsAsDTO(orderId);
+            System.out.println("Order details retrieved: " + orderDetails);
             return ResponseEntity.ok(orderDetails);
         } catch (RuntimeException e) {
+            System.out.println("Error fetching order details: " + e.getMessage());
             return ResponseEntity.notFound().build();
         }
     }

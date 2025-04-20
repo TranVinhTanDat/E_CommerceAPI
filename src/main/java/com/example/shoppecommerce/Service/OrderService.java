@@ -336,11 +336,15 @@ public class OrderService {
     }
 
     public OrderDetailsDTO getOrderDetailsAsDTO(Long orderId) {
+        System.out.println("Fetching order with ID: " + orderId);
         Order order = orderRepository.findById(orderId).orElseThrow(() -> new RuntimeException("Order not found"));
+        System.out.println("Order found: " + order);
         order.getItems().size();
+        System.out.println("Order items: " + order.getItems());
 
         OrderDetailsDTO orderDetailsDTO = new OrderDetailsDTO();
         orderDetailsDTO.setId(order.getId());
+        System.out.println("Setting username: " + order.getUser().getUsername());
         orderDetailsDTO.setUserName(order.getUser().getUsername());
         orderDetailsDTO.setUserEmail(order.getUser().getEmail());
         orderDetailsDTO.setTotal(order.getTotal());
@@ -349,6 +353,7 @@ public class OrderService {
         orderDetailsDTO.setUpdatedAt(order.getUpdatedAt());
 
         List<OrderItemDTO> itemDTOs = order.getItems().stream().map(item -> {
+            System.out.println("Mapping order item: " + item);
             OrderItemDTO itemDTO = new OrderItemDTO();
             itemDTO.setId(item.getId());
             itemDTO.setProductId(item.getProduct().getId());
@@ -360,6 +365,7 @@ public class OrderService {
         }).collect(Collectors.toList());
 
         orderDetailsDTO.setItems(itemDTOs);
+        System.out.println("Final OrderDetailsDTO: " + orderDetailsDTO);
         return orderDetailsDTO;
     }
 }
