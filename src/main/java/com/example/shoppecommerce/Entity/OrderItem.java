@@ -31,4 +31,15 @@ public class OrderItem {
     private int quantity;
 
     private BigDecimal price;
+
+    @Override
+    public String toString() {
+        return "OrderItem{" +
+                "id=" + id +
+                ", orderId=" + (order != null ? order.getId() : null) + // Chỉ lấy ID của Order để tránh vòng lặp
+                ", productId=" + (product != null ? product.getId() : null) + // Chỉ lấy ID của Product
+                ", quantity=" + quantity +
+                ", price=" + price +
+                '}';
+    }
 }

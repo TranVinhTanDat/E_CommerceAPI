@@ -22,6 +22,7 @@ public class Order {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
+    @JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
     private User user;
 
     @Column(nullable = false)
@@ -40,6 +41,7 @@ public class Order {
     private Date updatedAt;
 
     @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    @JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
     private List<OrderItem> items = new ArrayList<>();
 
     @PrePersist
@@ -50,5 +52,18 @@ public class Order {
     @PreUpdate
     protected void onUpdate() {
         updatedAt = new Date();
+    }
+
+    @Override
+    public String toString() {
+        return "Order{" +
+                "id=" + id +
+                ", userId=" + (user != null ? user.getId() : null) + // Chỉ lấy ID của user để tránh vòng lặp
+                ", total=" + total +
+                ", status=" + status +
+                ", createdAt=" + createdAt +
+                ", updatedAt=" + updatedAt +
+                ", itemsCount=" + (items != null ? items.size() : 0) + // Chỉ lấy số lượng items, không gọi toString() trên List<OrderItem>
+                '}';
     }
 }

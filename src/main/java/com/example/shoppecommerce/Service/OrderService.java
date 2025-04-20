@@ -339,9 +339,9 @@ public class OrderService {
     public OrderDetailsDTO getOrderDetailsAsDTO(Long orderId) {
         System.out.println("Fetching order with ID: " + orderId);
         Order order = orderRepository.findById(orderId).orElseThrow(() -> new RuntimeException("Order not found"));
-        System.out.println("Order found: " + order);
+        System.out.println("Order found: ID=" + order.getId() + ", Total=" + order.getTotal() + ", Status=" + order.getStatus());
         order.getItems().size(); // Tải danh sách items (lazy loading)
-        System.out.println("Order items: " + order.getItems());
+        System.out.println("Order items count: " + order.getItems().size());
 
         OrderDetailsDTO orderDetailsDTO = new OrderDetailsDTO();
         orderDetailsDTO.setId(order.getId());
@@ -354,7 +354,7 @@ public class OrderService {
         orderDetailsDTO.setUpdatedAt(order.getUpdatedAt());
 
         List<OrderItemDTO> itemDTOs = order.getItems().stream().map(item -> {
-            System.out.println("Mapping order item: " + item);
+            System.out.println("Mapping order item: ID=" + item.getId() + ", ProductID=" + item.getProduct().getId());
             OrderItemDTO itemDTO = new OrderItemDTO();
             itemDTO.setId(item.getId());
             itemDTO.setProductId(item.getProduct().getId());
@@ -366,7 +366,7 @@ public class OrderService {
         }).collect(Collectors.toList());
 
         orderDetailsDTO.setItems(itemDTOs);
-        System.out.println("Final OrderDetailsDTO: " + orderDetailsDTO);
+        System.out.println("Final OrderDetailsDTO: ID=" + orderDetailsDTO.getId() + ", Total=" + orderDetailsDTO.getTotal());
         return orderDetailsDTO;
     }
 }
