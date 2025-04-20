@@ -335,11 +335,12 @@ public class OrderService {
         return newOrders;
     }
 
+    @Transactional
     public OrderDetailsDTO getOrderDetailsAsDTO(Long orderId) {
         System.out.println("Fetching order with ID: " + orderId);
         Order order = orderRepository.findById(orderId).orElseThrow(() -> new RuntimeException("Order not found"));
         System.out.println("Order found: " + order);
-        order.getItems().size();
+        order.getItems().size(); // Tải danh sách items (lazy loading)
         System.out.println("Order items: " + order.getItems());
 
         OrderDetailsDTO orderDetailsDTO = new OrderDetailsDTO();
