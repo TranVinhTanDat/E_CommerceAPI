@@ -338,22 +338,9 @@ public class OrderService {
     public List<OrderDTO> getNewOrdersAsDTO() {
         logger.info("Lấy danh sách đơn hàng mới dưới dạng DTO...");
         try {
-            List<Order> newOrders = orderRepository.findByStatusInAndDate(List.of(OrderStatus.PENDING, OrderStatus.PROCESSING));
-            List<OrderDTO> orderDTOs = newOrders.stream().map(order -> {
-                logger.debug("Chuyển đổi đơn hàng ID {} thành DTO", order.getId());
-                return new OrderDTO(
-                        order.getId(),
-                        order.getUser().getUsername(),
-                        null, // addressLine1
-                        null, // addressLine2
-                        null, // phone
-                        order.getStatus(),
-                        order.getTotal(),
-                        "CASH"
-                );
-            }).collect(Collectors.toList());
-            logger.info("Tìm thấy {} đơn hàng mới", orderDTOs.size());
-            return orderDTOs;
+            List<OrderDTO> newOrders = orderRepository.findNewOrdersAsDTO(List.of(OrderStatus.PENDING, OrderStatus.PROCESSING));
+            logger.info("Tìm thấy {} đơn hàng mới", newOrders.size());
+            return newOrders;
         } catch (Exception e) {
             logger.error("Lỗi khi lấy danh sách đơn hàng mới dưới dạng DTO: {}", e.getMessage(), e);
             throw e;

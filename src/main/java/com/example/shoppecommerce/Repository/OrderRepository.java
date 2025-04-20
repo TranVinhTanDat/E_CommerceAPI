@@ -22,6 +22,13 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
     List<Order> findByUserIdAndStatus(@Param("userId") Long userId, @Param("status") OrderStatus status);
 
     @Query("SELECT new com.example.shoppecommerce.DTO.OrderDTO(" +
+            "o.id, u.username, null, null, null, o.status, o.total, 'CASH') " +
+            "FROM Order o " +
+            "JOIN o.user u " +
+            "WHERE o.status IN :statuses AND DATE(o.createdAt) = CURRENT_DATE")
+    List<OrderDTO> findNewOrdersAsDTO(@Param("statuses") List<OrderStatus> statuses);
+
+    @Query("SELECT new com.example.shoppecommerce.DTO.OrderDTO(" +
             "o.id, u.username, a.addressLine1, a.addressLine2, a.phone, " +
             "o.status, o.total, 'CASH') " +
             "FROM Order o " +
