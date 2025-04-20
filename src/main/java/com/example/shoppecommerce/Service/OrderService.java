@@ -335,18 +335,6 @@ public class OrderService {
         return newOrders;
     }
 
-    public List<OrderDTO> getNewOrdersAsDTO() {
-        logger.info("Lấy danh sách đơn hàng mới dưới dạng DTO...");
-        try {
-            List<OrderDTO> newOrders = orderRepository.findNewOrdersAsDTO(List.of(OrderStatus.PENDING, OrderStatus.PROCESSING));
-            logger.info("Tìm thấy {} đơn hàng mới", newOrders.size());
-            return newOrders;
-        } catch (Exception e) {
-            logger.error("Lỗi khi lấy danh sách đơn hàng mới dưới dạng DTO: {}", e.getMessage(), e);
-            throw e;
-        }
-    }
-
     @Transactional
     public OrderDetailsDTO getOrderDetailsAsDTO(Long orderId) {
         System.out.println("Fetching order with ID: " + orderId);
