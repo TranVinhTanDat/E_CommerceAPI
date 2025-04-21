@@ -25,6 +25,9 @@ public class Order {
     @JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
     private User user;
 
+    @Column(name = "address_id")
+    private Long addressId;
+
     @Column(nullable = false)
     private BigDecimal total = BigDecimal.ZERO;
 
@@ -58,12 +61,13 @@ public class Order {
     public String toString() {
         return "Order{" +
                 "id=" + id +
-                ", userId=" + (user != null ? user.getId() : null) + // Chỉ lấy ID của user để tránh vòng lặp
+                ", userId=" + (user != null ? user.getId() : null) +
+                ", addressId=" + addressId +
                 ", total=" + total +
                 ", status=" + status +
                 ", createdAt=" + createdAt +
                 ", updatedAt=" + updatedAt +
-                ", itemsCount=" + (items != null ? items.size() : 0) + // Chỉ lấy số lượng items, không gọi toString() trên List<OrderItem>
+                ", itemsCount=" + (items != null ? items.size() : 0) +
                 '}';
     }
 }

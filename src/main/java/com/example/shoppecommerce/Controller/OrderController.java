@@ -32,12 +32,14 @@ public class OrderController {
     private UserService userService;
 
     @PostMapping("/place")
-    public ResponseEntity<Order> placeOrder(@AuthenticationPrincipal UserDetails userDetails) {
+    public ResponseEntity<Order> placeOrder(
+            @AuthenticationPrincipal UserDetails userDetails,
+            @RequestParam Long addressId) { // Thêm addressId từ query parameter
         User user = userService.findByUsername(userDetails.getUsername());
         if (user == null) {
             return ResponseEntity.badRequest().body(null);
         }
-        Order order = orderService.placeOrder(user.getId());
+        Order order = orderService.placeOrder(user.getId(), addressId); // Truyền cả userId và addressId
         return ResponseEntity.ok(order);
     }
 
