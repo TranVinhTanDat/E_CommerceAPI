@@ -139,6 +139,50 @@ public class OrderService {
         return order;
     }
 
+    public List<OrderDTO> getUserOrdersAsDTO(Long userId) {
+        List<Order> orders = orderRepository.findByUserId(userId);
+        return orders.stream().map(this::convertToOrderDTO).collect(Collectors.toList());
+    }
+
+    public List<OrderDTO> getUserOrdersByStatusAsDTO(Long userId, String status) {
+        try {
+            OrderStatus orderStatus = OrderStatus.valueOf(status.toUpperCase());
+            List<Order> orders = orderRepository.findByUserIdAndStatus(userId, orderStatus);
+            return orders.stream().map(this::convertToOrderDTO).collect(Collectors.toList());
+        } catch (IllegalArgumentException e) {
+            throw new RuntimeException("Invalid order status: " + status);
+        }
+    }
+
+    private OrderDTO convertToOrderDTO(Order order) {
+        OrderDTO orderDTO = new OrderDTO();
+        orderDTO.setOrderId(order.getId());
+        orderDTO.setUserName(order.getUser().getUsername());
+        orderDTO.setAddressLine1(order.getShippingAddress() != null ? order.getShippingAddress().getAddressLine1() : null);
+        orderDTO.setAddressLine2(order.getShippingAddress() != null ? order.getShippingAddress().getAddressLine2() : null);
+        orderDTO.setPhone(order.getShippingAddress() != null ? order.getShippingAddress().getPhone() : null);
+        orderDTO.setStatus(order.getStatus() != null ? order.getStatus().name() : null);
+        orderDTO.setTotal(order.getTotal());
+        orderDTO.setPaymentMethod("CASH"); // Giả sử mặc định là CASH
+
+        // Tải danh sách items và chuyển thành DTO
+        List<OrderItemDTO> itemDTOs = order.getItems().stream().map(item -> {
+            OrderItemDTO itemDTO = new OrderItemDTO();
+            itemDTO.setId(item.getId());
+            itemDTO.setProductId(item.getProduct().getId());
+            itemDTO.setProductName(item.getProduct().getName());
+            itemDTO.setImage(item.getProduct().getImage());
+            itemDTO.setQuantity(item.getQuantity());
+            itemDTO.setPrice(item.getPrice());
+            return itemDTO;
+        }).collect(Collectors.toList());
+
+        // Nếu bạn muốn trả thêm danh sách items trong OrderDTO, cần thêm field và setter trong OrderDTO
+        // orderDTO.setItems(itemDTOs);
+
+        return orderDTO;
+    }
+
     public List<Order> getUserOrdersByStatus(Long userId, String status) {
         try {
             OrderStatus orderStatus = OrderStatus.valueOf(status.toUpperCase());

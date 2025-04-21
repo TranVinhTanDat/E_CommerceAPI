@@ -26,9 +26,9 @@ public class Order {
     private User user;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "shipping_address_id", nullable = false)
+    @JoinColumn(name = "shipping_address_id", nullable = true)
     @JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
-    private Address shippingAddress; // Thêm trường này để lưu địa chỉ giao hàng
+    private Address shippingAddress;
 
     @Column(nullable = false)
     private BigDecimal total = BigDecimal.ZERO;

@@ -56,20 +56,12 @@ public class OrderController {
                 return ResponseEntity.status(HttpStatus.NOT_FOUND).body("User not found");
             }
 
-            List<Order> orders;
+            List<OrderDTO> orders;
             if (status != null) {
-                orders = orderService.getUserOrdersByStatus(user.getId(), status);
+                orders = orderService.getUserOrdersByStatusAsDTO(user.getId(), status);
             } else {
-                orders = orderService.getUserOrders(user.getId());
+                orders = orderService.getUserOrdersAsDTO(user.getId());
             }
-
-            orders.forEach(order -> {
-                order.setUser(null);
-                order.getItems().forEach(item -> {
-                    item.setOrder(null);
-                    item.getProduct().setCategory(null);
-                });
-            });
 
             return ResponseEntity.ok(orders);
         } catch (RuntimeException e) {
