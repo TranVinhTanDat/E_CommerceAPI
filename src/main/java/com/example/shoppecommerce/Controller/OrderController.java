@@ -32,46 +32,50 @@ public class OrderController {
     private UserService userService;
 
     @PostMapping("/place")
-    public ResponseEntity<Order> placeOrder(
+    public ResponseEntity<?> placeOrder(
             @AuthenticationPrincipal UserDetails userDetails,
-            @RequestParam Long addressId) { // Thêm tham số addressId
-        User user = userService.findByUsername(userDetails.getUsername());
-        if (user == null) {
-            return ResponseEntity.badRequest().body(null);
+            @RequestParam Long addressId) {
+        try {
+            User user = userService.findByUsername(userDetails.getUsername());
+            if (user == null) {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body("User not found");
+            }
+            Order order = orderService.placeOrder(user.getId(), addressId);
+            return ResponseEntity.ok(order);
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
         }
-        Order order = orderService.placeOrder(user.getId(), addressId);
-        return ResponseEntity.ok(order);
     }
-
     @GetMapping("/user")
-    public ResponseEntity<List<Order>> getUserOrders(
+    public ResponseEntity<?> getUserOrders(
             @AuthenticationPrincipal UserDetails userDetails,
             @RequestParam(value = "status", required = false) String status) {
+        try {
+            User user = userService.findByUsername(userDetails.getUsername());
+            if (user == null) {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body("User not found");
+            }
 
-        User user = userService.findByUsername(userDetails.getUsername());
-        if (user == null) {
-            return ResponseEntity.badRequest().body(null);
-        }
+            List<Order> orders;
+            if (status != null) {
+                orders = orderService.getUserOrdersByStatus(user.getId(), status);
+            } else {
+                orders = orderService.getUserOrders(user.getId());
+            }
 
-        List<Order> orders;
-        if (status != null) {
-            orders = orderService.getUserOrdersByStatus(user.getId(), status);
-        } else {
-            orders = orderService.getUserOrders(user.getId());
-        }
-
-        // Đảm bảo không gửi thông tin người dùng về frontend để bảo mật
-        orders.forEach(order -> {
-            order.setUser(null);
-            order.getItems().forEach(item -> {
-                item.setOrder(null);
-                item.getProduct().setCategory(null);
+            orders.forEach(order -> {
+                order.setUser(null);
+                order.getItems().forEach(item -> {
+                    item.setOrder(null);
+                    item.getProduct().setCategory(null);
+                });
             });
-        });
 
-        return ResponseEntity.ok(orders);
+            return ResponseEntity.ok(orders);
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
     }
-
 
     @GetMapping("/details/{orderId}")
     public ResponseEntity<OrderDetailsDTO> getOrderDetails(@PathVariable Long orderId) {
@@ -123,20 +127,21 @@ public class OrderController {
     }
 
     @GetMapping("/all")
-    public ResponseEntity<List<OrderDTO>> getAllOrders(@RequestParam(value = "date", required = false) String dateStr) {
-        List<OrderDTO> orders;
-        if (dateStr != null) {
-            try {
-                // ✅ Đổi String -> java.sql.Date
+    public ResponseEntity<?> getAllOrders(@RequestParam(value = "date", required = false) String dateStr) {
+        try {
+            List<OrderDTO> orders;
+            if (dateStr != null) {
                 java.sql.Date date = java.sql.Date.valueOf(dateStr.trim());
                 orders = orderService.getOrdersByDate(date);
-            } catch (IllegalArgumentException e) {
-                return ResponseEntity.badRequest().body(null);
+            } else {
+                orders = orderService.getAllOrderDTOs();
             }
-        } else {
-            orders = orderService.getAllOrderDTOs();
+            return ResponseEntity.ok(orders);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body("Invalid date format: " + dateStr);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error fetching orders: " + e.getMessage());
         }
-        return ResponseEntity.ok(orders);
     }
 
     @PostMapping("/update-status/{orderId}")
@@ -160,10 +165,10 @@ public class OrderController {
     }
 
     @GetMapping("/all-shipper")
-    public ResponseEntity<List<OrderDTO>> getAllOrdersShipper(@RequestParam(value = "date", required = false) String dateStr) {
-        List<OrderDTO> orders;
-        if (dateStr != null) {
-            try {
+    public ResponseEntity<?> getAllOrdersShipper(@RequestParam(value = "date", required = false) String dateStr) {
+        try {
+            List<OrderDTO> orders;
+            if (dateStr != null) {
                 java.sql.Date date = java.sql.Date.valueOf(dateStr);
                 orders = orderService.getOrdersByDate(date);
                 if (orders.isEmpty()) {
@@ -171,13 +176,15 @@ public class OrderController {
                 } else {
                     System.out.println("Orders found: " + orders.size());
                 }
-            } catch (IllegalArgumentException e) {
-                return ResponseEntity.badRequest().body(null);
+            } else {
+                orders = orderService.getAllOrderDTOs();
             }
-        } else {
-            orders = orderService.getAllOrderDTOs();
+            return ResponseEntity.ok(orders);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body("Invalid date format: " + dateStr);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error fetching orders: " + e.getMessage());
         }
-        return ResponseEntity.ok(orders);
     }
 
 

@@ -30,7 +30,7 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
             "ORDER BY o.createdAt DESC")
     List<OrderDTO> findAllOrderDTOs();
 
-    @Query("SELECT DISTINCT new com.example.shoppecommerce.DTO.OrderDTO(" +
+    @Query("SELECT new com.example.shoppecommerce.DTO.OrderDTO(" +
             "o.id, u.username, a.addressLine1, a.addressLine2, a.phone, " +
             "o.status, o.total, 'CASH') " +
             "FROM Order o " +
