@@ -8,6 +8,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.math.BigDecimal;
+import java.util.Date;
 import java.util.List;
 
 @Getter
@@ -24,10 +25,13 @@ public class OrderDTO {
     private String status;
     private BigDecimal total;
     private String paymentMethod;
-    private List<OrderItemDTO> items; // Thêm field này
+    private Date createdAt; // Thêm
+    private Date updatedAt; // Thêm
+    private List<OrderItemDTO> items;
 
     public OrderDTO(Long orderId, String userName, String addressLine1, String addressLine2,
-                    String phone, OrderStatus status, BigDecimal total, String paymentMethod) {
+                    String phone, OrderStatus status, BigDecimal total, String paymentMethod,
+                    Date createdAt, Date updatedAt) {
         this.orderId = orderId;
         this.userName = userName;
         this.addressLine1 = addressLine1;
@@ -36,5 +40,7 @@ public class OrderDTO {
         this.status = status != null ? status.name() : null;
         this.total = total;
         this.paymentMethod = paymentMethod;
+        this.createdAt = createdAt;
+        this.updatedAt = updatedAt;
     }
 }
