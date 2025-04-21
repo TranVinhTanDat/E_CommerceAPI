@@ -48,8 +48,8 @@ public class OrderService {
     }
 
     @Transactional
-    public Order placeOrder(Long userId, Long addressId)    {
-        logger.info("📦 Bắt đầu đặt hàng cho user ID: {}, address ID: {}", userId, addressId);
+    public Order placeOrder(Long userId) {
+        logger.info("📦 Bắt đầu đặt hàng cho user ID: {}", userId);
 
         User user = userRepository.findById(userId).orElseThrow(() -> new RuntimeException("User not found"));
         Cart cart = cartRepository.findByUserId(userId).orElseThrow(() -> new RuntimeException("Cart not found"));
@@ -64,7 +64,6 @@ public class OrderService {
 
         Order order = new Order();
         order.setUser(user);
-        order.setAddressId(addressId);
         order.setStatus(OrderStatus.PENDING);
         order.setTotal(BigDecimal.ZERO);
 
@@ -97,11 +96,13 @@ public class OrderService {
         order.setTotal(total);
         orderRepository.save(order);
 
+        // Xóa giỏ hàng
         logger.info("🗑️ Đang xóa {} mặt hàng trong giỏ hàng (cart_id={})!", cartItems.size(), cart.getId());
         cartItemRepository.deleteByCartId(cart.getId());
         entityManager.flush();
         entityManager.clear();
 
+        // Kiểm tra lại giỏ hàng
         List<CartItem> remainingItems = cartItemRepository.findByCartId(cart.getId());
         if (!remainingItems.isEmpty()) {
             logger.error("❌ Vẫn còn {} mặt hàng trong giỏ hàng (cart_id={}) sau khi xóa", remainingItems.size(), cart.getId());
