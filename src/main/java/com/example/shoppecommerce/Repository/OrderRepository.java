@@ -15,29 +15,15 @@ import java.util.List;
 @Repository
 public interface OrderRepository extends JpaRepository<Order, Long> {
 
-    @Query("SELECT new com.example.shoppecommerce.DTO.OrderDTO(" +
-            "o.id, u.username, a.addressLine1, a.addressLine2, a.phone, " +
-            "o.status, o.total, 'CASH', o.createdAt, o.updatedAt) " +
-            "FROM Order o " +
-            "JOIN o.user u " +
-            "LEFT JOIN o.shippingAddress a " +
-            "WHERE o.user.id = :userId " +
-            "ORDER BY o.createdAt DESC")
-    List<OrderDTO> findByUserId(@Param("userId") Long userId);
+    @Query("SELECT o FROM Order o JOIN FETCH o.user u JOIN FETCH o.items i JOIN FETCH i.product p JOIN FETCH p.category JOIN FETCH o.shippingAddress a WHERE o.user.id = :userId ORDER BY o.createdAt DESC")
+    List<Order> findByUserId(@Param("userId") Long userId);
+
+    @Query("SELECT o FROM Order o JOIN FETCH o.user u JOIN FETCH o.items i JOIN FETCH i.product p JOIN FETCH p.category JOIN FETCH o.shippingAddress a WHERE o.user.id = :userId AND o.status = :status ORDER BY o.createdAt DESC")
+    List<Order> findByUserIdAndStatus(@Param("userId") Long userId, @Param("status") OrderStatus status);
 
     @Query("SELECT new com.example.shoppecommerce.DTO.OrderDTO(" +
             "o.id, u.username, a.addressLine1, a.addressLine2, a.phone, " +
-            "o.status, o.total, 'CASH', o.createdAt, o.updatedAt) " +
-            "FROM Order o " +
-            "JOIN o.user u " +
-            "LEFT JOIN o.shippingAddress a " +
-            "WHERE o.user.id = :userId AND o.status = :status " +
-            "ORDER BY o.createdAt DESC")
-    List<OrderDTO> findByUserIdAndStatus(@Param("userId") Long userId, @Param("status") OrderStatus status);
-
-    @Query("SELECT new com.example.shoppecommerce.DTO.OrderDTO(" +
-            "o.id, u.username, a.addressLine1, a.addressLine2, a.phone, " +
-            "o.status, o.total, 'CASH', o.createdAt, o.updatedAt) " +
+            "o.status, o.total, 'CASH') " +
             "FROM Order o " +
             "JOIN o.user u " +
             "LEFT JOIN o.shippingAddress a " +
@@ -46,7 +32,7 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
 
     @Query("SELECT new com.example.shoppecommerce.DTO.OrderDTO(" +
             "o.id, u.username, a.addressLine1, a.addressLine2, a.phone, " +
-            "o.status, o.total, 'CASH', o.createdAt, o.updatedAt) " +
+            "o.status, o.total, 'CASH') " +
             "FROM Order o " +
             "JOIN o.user u " +
             "LEFT JOIN o.shippingAddress a " +
