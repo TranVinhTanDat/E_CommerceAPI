@@ -36,6 +36,27 @@ public class AddressController {
         return ResponseEntity.ok(addresses);
     }
 
+    @GetMapping("/default")
+    public ResponseEntity<Address> getDefaultAddress() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        User user = (User) authentication.getPrincipal();
+        Long userId = addressService.findUserIdByUsername(user.getUsername());
+        Address defaultAddress = addressService.getDefaultAddress(userId);
+        if (defaultAddress == null) {
+            return ResponseEntity.noContent().build();
+        }
+        return ResponseEntity.ok(defaultAddress);
+    }
+
+    @PostMapping("/set-default/{addressId}")
+    public ResponseEntity<Address> setDefaultAddress(@PathVariable Long addressId) {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        User user = (User) authentication.getPrincipal();
+        Long userId = addressService.findUserIdByUsername(user.getUsername());
+        Address updatedAddress = addressService.setDefaultAddress(userId, addressId);
+        return ResponseEntity.ok(updatedAddress);
+    }
+
     @PutMapping("/{addressId}")
     public ResponseEntity<Address> updateAddress(@PathVariable Long addressId, @RequestBody Address addressDetails) {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();

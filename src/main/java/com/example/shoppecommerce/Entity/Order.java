@@ -25,6 +25,11 @@ public class Order {
     @JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
     private User user;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "shipping_address_id", nullable = false)
+    @JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
+    private Address shippingAddress; // Thêm trường này để lưu địa chỉ giao hàng
+
     @Column(nullable = false)
     private BigDecimal total = BigDecimal.ZERO;
 
@@ -58,12 +63,13 @@ public class Order {
     public String toString() {
         return "Order{" +
                 "id=" + id +
-                ", userId=" + (user != null ? user.getId() : null) + // Chỉ lấy ID của user để tránh vòng lặp
+                ", userId=" + (user != null ? user.getId() : null) +
+                ", shippingAddressId=" + (shippingAddress != null ? shippingAddress.getId() : null) +
                 ", total=" + total +
                 ", status=" + status +
                 ", createdAt=" + createdAt +
                 ", updatedAt=" + updatedAt +
-                ", itemsCount=" + (items != null ? items.size() : 0) + // Chỉ lấy số lượng items, không gọi toString() trên List<OrderItem>
+                ", itemsCount=" + (items != null ? items.size() : 0) +
                 '}';
     }
 }

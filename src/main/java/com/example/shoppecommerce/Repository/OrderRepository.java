@@ -26,7 +26,7 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
             "o.status, o.total, 'CASH') " +
             "FROM Order o " +
             "JOIN o.user u " +
-            "JOIN Address a ON a.user.id = u.id " +
+            "JOIN o.shippingAddress a " +
             "ORDER BY o.createdAt DESC")
     List<OrderDTO> findAllOrderDTOs();
 
@@ -35,8 +35,8 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
             "o.status, o.total, 'CASH') " +
             "FROM Order o " +
             "JOIN o.user u " +
-            "JOIN Address a ON a.user.id = u.id " +
-            "WHERE DATE(o.createdAt) = :date " +
+            "JOIN o.shippingAddress a " +
+            "WHERE FUNCTION('DATE', o.createdAt) = :date " +
             "ORDER BY o.createdAt DESC")
     List<OrderDTO> findOrdersByDate(@Param("date") Date date);
 
@@ -53,10 +53,9 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
 
     List<Order> findByStatusIn(List<OrderStatus> statuses);
 
-    // Bổ sung để hỗ trợ đơn hàng mới hôm nay
-    @Query("SELECT COUNT(o) FROM Order o WHERE o.status IN :statuses AND DATE(o.createdAt) = CURRENT_DATE")
+    @Query("SELECT COUNT(o) FROM Order o WHERE o.status IN :statuses AND FUNCTION('DATE', o.createdAt) = CURRENT_DATE")
     long countNewOrdersByDate(@Param("statuses") List<OrderStatus> statuses);
 
-    @Query("SELECT o FROM Order o WHERE o.status IN :statuses AND DATE(o.createdAt) = CURRENT_DATE")
+    @Query("SELECT o FROM Order o WHERE o.status IN :statuses AND FUNCTION('DATE', o.createdAt) = CURRENT_DATE")
     List<Order> findByStatusInAndDate(@Param("statuses") List<OrderStatus> statuses);
 }

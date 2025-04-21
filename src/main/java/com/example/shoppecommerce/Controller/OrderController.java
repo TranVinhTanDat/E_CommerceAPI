@@ -32,12 +32,14 @@ public class OrderController {
     private UserService userService;
 
     @PostMapping("/place")
-    public ResponseEntity<Order> placeOrder(@AuthenticationPrincipal UserDetails userDetails) {
+    public ResponseEntity<Order> placeOrder(
+            @AuthenticationPrincipal UserDetails userDetails,
+            @RequestParam Long addressId) { // Thêm tham số addressId
         User user = userService.findByUsername(userDetails.getUsername());
         if (user == null) {
             return ResponseEntity.badRequest().body(null);
         }
-        Order order = orderService.placeOrder(user.getId());
+        Order order = orderService.placeOrder(user.getId(), addressId);
         return ResponseEntity.ok(order);
     }
 
@@ -145,21 +147,6 @@ public class OrderController {
             return ResponseEntity.ok("Order status updated to " + newStatus);
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body("Invalid order status: " + newStatus);
-        } catch (RuntimeException e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
-        }
-    }
-
-    // Add these in OrderController
-    @PostMapping("/place-temporary")
-    public ResponseEntity<?> placeTemporaryOrder(@AuthenticationPrincipal UserDetails userDetails) {
-        User user = userService.findByUsername(userDetails.getUsername());
-        if (user == null) {
-            return ResponseEntity.badRequest().body("User not found");
-        }
-        try {
-            Order order = orderService.placeTemporaryOrder(user.getId());
-            return ResponseEntity.ok(order);
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest().body(e.getMessage());
         }

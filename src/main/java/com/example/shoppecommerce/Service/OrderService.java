@@ -43,16 +43,27 @@ public class OrderService {
     @PersistenceContext
     private EntityManager entityManager;
 
+    @Autowired
+    private AddressRepository addressRepository; // Thêm dependency này
+
+
     public List<OrderDTO> getAllOrderDTOs() {
         return orderRepository.findAllOrderDTOs();
     }
 
     @Transactional
-    public Order placeOrder(Long userId) {
+    public Order placeOrder(Long userId, Long addressId) {
         logger.info("📦 Bắt đầu đặt hàng cho user ID: {}", userId);
 
         User user = userRepository.findById(userId).orElseThrow(() -> new RuntimeException("User not found"));
         Cart cart = cartRepository.findByUserId(userId).orElseThrow(() -> new RuntimeException("Cart not found"));
+
+        // Kiểm tra địa chỉ giao hàng
+        Address shippingAddress = addressRepository.findById(addressId)
+                .orElseThrow(() -> new RuntimeException("Shipping address not found"));
+        if (!shippingAddress.getUser().getId().equals(userId)) {
+            throw new RuntimeException("You are not authorized to use this address");
+        }
 
         List<CartItem> cartItems = cartItemRepository.findByCartId(cart.getId());
         if (cartItems.isEmpty()) {
@@ -64,6 +75,7 @@ public class OrderService {
 
         Order order = new Order();
         order.setUser(user);
+        order.setShippingAddress(shippingAddress); // Gán địa chỉ giao hàng
         order.setStatus(OrderStatus.PENDING);
         order.setTotal(BigDecimal.ZERO);
 
@@ -192,64 +204,6 @@ public class OrderService {
         } else {
             throw new RuntimeException("Order is not in PENDING state, cannot confirm payment.");
         }
-    }
-
-    @Transactional
-    public Order placeTemporaryOrder(Long userId) {
-        logger.info("Placing temporary order for user ID: {}", userId);
-
-        Cart cart = cartRepository.findByUserId(userId).orElseThrow(() -> {
-            logger.error("Cart not found for user ID: {}", userId);
-            return new RuntimeException("Cart not found");
-        });
-
-        List<CartItem> cartItems = cartItemRepository.findByCartId(cart.getId());
-
-        if (cartItems.isEmpty()) {
-            logger.warn("No items in the cart to place the order for user ID: {}", userId);
-            throw new RuntimeException("No items in the cart to place the order");
-        }
-
-        Order order = new Order();
-        User user = userRepository.findById(userId).orElse(null);
-        if (user == null) {
-            logger.error("User not found for ID: {}", userId);
-            throw new RuntimeException("User not found");
-        }
-        order.setUser(user);
-        order.setStatus(OrderStatus.TEMPORARY);
-
-        order.setTotal(BigDecimal.ZERO);
-
-        orderRepository.save(order);
-
-        BigDecimal total = BigDecimal.ZERO;
-
-        for (CartItem cartItem : cartItems) {
-            Product product = cartItem.getProduct();
-            if (product.getQuantity() < cartItem.getQuantity()) {
-                logger.error("Not enough stock for product: {}", product.getName());
-                throw new RuntimeException("Not enough stock for product: " + product.getName());
-            }
-            product.setQuantity(product.getQuantity() - cartItem.getQuantity());
-            productRepository.save(product);
-
-            OrderItem orderItem = new OrderItem();
-            orderItem.setOrder(order);
-            orderItem.setProduct(product);
-            orderItem.setQuantity(cartItem.getQuantity());
-            orderItem.setPrice(product.getPrice().multiply(BigDecimal.valueOf(cartItem.getQuantity())));
-            total = total.add(orderItem.getPrice());
-
-            orderItemRepository.save(orderItem);
-            logger.info("Added product ID: {} to temporary order with quantity: {}", product.getId(), cartItem.getQuantity());
-        }
-
-        order.setTotal(total);
-        orderRepository.save(order);
-        logger.info("Temporary order placed successfully for user ID: {} with total: {}", userId, total);
-
-        return order;
     }
 
     @Transactional

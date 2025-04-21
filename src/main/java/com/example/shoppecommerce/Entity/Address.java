@@ -19,7 +19,7 @@ public class Address {
     private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "user_id")
+    @JoinColumn(name = "user_id", nullable = false)
     @JsonIgnore
     private User user;
 
@@ -42,17 +42,19 @@ public class Address {
     private String country;
 
     @Column(name = "phone", nullable = false)
-    private String phone;  // Thêm thuộc tính phone
+    private String phone;
+
+    @Column(name = "email", nullable = false)
+    private String email;
+
+    @Column(name = "is_default", nullable = false)
+    private boolean isDefault = false; // Trường để đánh dấu địa chỉ mặc định
 
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt = LocalDateTime.now();
 
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt = LocalDateTime.now();
-
-    @Column(name = "email", nullable = false)
-    private String email;
-
 
     @PreUpdate
     protected void onUpdate() {
