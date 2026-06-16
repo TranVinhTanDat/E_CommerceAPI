@@ -2,6 +2,7 @@ package com.example.shoppecommerce.Config;
 
 import com.example.shoppecommerce.Service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpStatus;
@@ -29,6 +30,10 @@ public class SecurityConfig {
     @Autowired
     private PasswordEncoder passwordEncoder;
 
+    // Danh sách origin được phép gọi API (cấu hình qua env CORS_ALLOWED_ORIGINS, ngăn cách bằng dấu phẩy)
+    @Value("${CORS_ALLOWED_ORIGINS:https://e-commerce-fe-seven-snowy.vercel.app,http://localhost:3000}")
+    private String allowedOrigins;
+
     @Bean
     public AuthenticationManager authenticationManager(HttpSecurity http) throws Exception {
         AuthenticationManagerBuilder authenticationManagerBuilder = http.getSharedObject(AuthenticationManagerBuilder.class);
@@ -43,7 +48,7 @@ public class SecurityConfig {
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .authorizeHttpRequests(auth -> auth
                         // Các endpoint công khai
-                        .requestMatchers("/", "/auth/**", "/login").permitAll()
+                        .requestMatchers("/", "/auth/**", "/login", "/error").permitAll()
                         .requestMatchers("/categories/**", "/products/**").permitAll()
                         .requestMatchers("/messages/**", "/ws/**").permitAll()
                         // Yêu cầu xác thực
@@ -85,8 +90,11 @@ public class SecurityConfig {
     public UrlBasedCorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
         configuration.setAllowCredentials(true);
-        configuration.addAllowedOrigin("https://e-commerce-fe-seven-snowy.vercel.app");
-        configuration.addAllowedOrigin("http://localhost:3000");
+        for (String origin : allowedOrigins.split(",")) {
+            if (!origin.isBlank()) {
+                configuration.addAllowedOrigin(origin.trim());
+            }
+        }
         configuration.addAllowedHeader("*");
         configuration.addAllowedMethod("*");
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();

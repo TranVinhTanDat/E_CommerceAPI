@@ -42,12 +42,16 @@
         @DeleteMapping("/delete-product")
         public ResponseEntity<ApiResponse<Product>> deleteProduct(@RequestParam long id) {
             Product existProduct = productService.getProductById(id);
-            if (existProduct != null) {
+            if (existProduct == null) {
+                return new ResponseEntity<>(new ApiResponse<>(false,"Sản phẩm không tồn tại",null), HttpStatus.NOT_FOUND);
+            }
+            try {
                 productService.deleteProduct(id);
                 return new ResponseEntity<>(new ApiResponse<>(true,"Delete product successfully", existProduct), HttpStatus.OK);
-            }
-            else {
-                return new ResponseEntity<>(new ApiResponse<>(false,"Delete product Fail",null), HttpStatus.BAD_REQUEST);
+            } catch (org.springframework.dao.DataIntegrityViolationException e) {
+                // Sản phẩm đang được tham chiếu (giỏ hàng / đơn hàng) nên không thể xóa
+                return new ResponseEntity<>(new ApiResponse<>(false,
+                        "Không thể xóa: sản phẩm đang nằm trong giỏ hàng hoặc đơn hàng.", null), HttpStatus.CONFLICT);
             }
         }
 

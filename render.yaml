@@ -1,0 +1,34 @@
+# Render Blueprint cho Backend (Spring Boot + Docker)
+# Deploy: Render Dashboard -> New -> Blueprint -> chọn repo E_CommerceAPI
+# Lưu ý: Render KHÔNG có MySQL quản lý sẵn -> cần MySQL ngoài (vd Aiven free tier).
+services:
+  - type: web
+    name: ecommerce-api
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    plan: free
+    region: singapore
+    healthCheckPath: /
+    envVars:
+      - key: SPRING_PROFILES_ACTIVE
+        value: prod
+      # ----- Database (MySQL ngoài, vd Aiven) -----
+      - key: AIVEN_MYSQL_URL          # vd: jdbc:mysql://host:port/defaultdb?ssl-mode=REQUIRED
+        sync: false
+      - key: AIVEN_MYSQL_USERNAME
+        sync: false
+      - key: AIVEN_MYSQL_PASSWORD
+        sync: false
+      # ----- Bảo mật / tích hợp (đặt giá trị thật, hoặc dummy để app khởi động) -----
+      - key: JWT_SECRET
+        sync: false
+      - key: MOMO_SECRET_KEY
+        sync: false
+      - key: SPRING_MAIL_USERNAME
+        sync: false
+      - key: SPRING_MAIL_PASSWORD
+        sync: false
+      - key: GOOGLE_OAUTH2_CLIENT_ID
+        sync: false
+      - key: GOOGLE_OAUTH2_CLIENT_SECRET
+        sync: false
